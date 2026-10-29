@@ -4,6 +4,8 @@ const Campaign = preload("res://src/campaign.gd")
 var sim
 var selected: Array = []
 var command_formation = "box"
+var queue_orders = false
+var queue_button: Button
 var visuals: Dictionary = {}
 var camera: Camera3D
 var status: Label
@@ -140,10 +142,12 @@ func ui():
  formation_button.pressed.connect(func():
   command_formation = "line" if command_formation == "box" else "box"
   formation_button.text = "Formation: " + command_formation.capitalize())
+ queue_button = button(box,"Queue orders",func(): pass)
+ queue_button.toggle_mode = true
+ queue_button.toggled.connect(func(enabled): queue_orders = enabled)
  button(box,"Hold position",func():
   clear_direct()
-  for u in sim.units:
-   if selected.has(u.id): u.order={})
+  sim.hold(selected))
  unit_text = Label.new()
  box.add_child(unit_text)
  var pad = GridContainer.new()
@@ -162,7 +166,7 @@ func ui():
  message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
  message.custom_minimum_size.x = 230
  box.add_child(message)
- message.text = "Tap friendly unit, then ground to move or enemy to focus fire. WASD/arrows/pad directly drive one selected unit. Units fire automatically. Relays: 120 combined seconds, or destroy HQ. Woods absorb 40% damage. Mud slows units."
+ message.text = "Tap friendly unit, then ground to move or enemy to focus fire. Queue orders or hold Shift to append up to 16 orders. Hold/direct drive cancel queues. WASD/arrows/pad directly drive one selected unit. Units fire automatically. Relays: 120 combined seconds, or destroy HQ. Woods absorb 40% damage. Mud slows units."
  update_blueprint()
 
 func update_blueprint():
@@ -285,7 +289,9 @@ func _unhandled_input(event):
  var target_id=-1
  for u in sim.units:
   if u.hp>0 and u.team==1 and u.pos.distance_to(p)<3: target_id=u.id
- sim.command(selected,p,target_id,command_formation)
+ var append_order = queue_orders or (event is InputEventMouseButton and event.shift_pressed)
+ if not sim.command(selected,p,target_id,command_formation,append_order):
+  message.text = "Order rejected: invalid command or queue full (16 orders)."
 
 func _physics_process(dt):
  if sim==null or paused or not sim.result.is_empty(): return
@@ -296,7 +302,7 @@ func _physics_process(dt):
   direct=Vector2(float(Input.is_physical_key_pressed(KEY_D) or Input.is_physical_key_pressed(KEY_RIGHT))-float(Input.is_physical_key_pressed(KEY_A) or Input.is_physical_key_pressed(KEY_LEFT)),float(Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_DOWN))-float(Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_UP)))
  for u in sim.units:
   u.direct=direct if selected.size()==1 and selected.has(u.id) else Vector2.ZERO
-  if u.direct!=Vector2.ZERO: u.order={}
+  if u.direct!=Vector2.ZERO: sim.direct_control(u.id,u.direct)
  accumulator+=minf(dt,0.1)
  while accumulator>=Sim.STEP and sim.result.is_empty():
   sim.tick()

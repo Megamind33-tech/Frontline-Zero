@@ -1,6 +1,7 @@
 extends RefCounted
 const FormationOrders = preload("res://src/formation_orders.gd")
 ## Deterministic battle model. Coordinates are horizontal world meters.
+const MAX_ORDERS = 16 # Includes the active order; group appends are atomic.
 const STEP = 1.0 / 30.0
 const PRESETS = {
  "scout": {"chassis":"wheeled", "weapon":"autocannon", "armor":"light"},
@@ -52,22 +53,58 @@ func _init(loadout: Array = ["tank","tank","scout","scout","artillery"], custom:
 
 func spawn(team: int, b: Dictionary, pos: Vector2):
  var u = b.duplicate(true)
- u.merge({"id":units.size()+1,"team":team,"pos":pos,"max_hp":b.hp,"cooldown":0.0,"order":{},"direct":Vector2.ZERO})
+ u.merge({"id":units.size()+1,"team":team,"pos":pos,"max_hp":b.hp,"cooldown":0.0,"order":{},"queue":[],"direct":Vector2.ZERO})
  units.append(u)
 
-func command(ids: Array, pos: Vector2, target_id: int = -1, formation: String = "box"):
- if not pos.is_finite():
-  return
+func command(ids: Array, pos: Vector2, target_id: int = -1, formation: String = "box", queued: bool = false) -> bool:
+ if not pos.is_finite() or not result.is_empty() or not error.is_empty():
+  return false
+ if target_id != -1 and not units.any(func(u): return u.id == target_id and u.team == 1 and u.hp > 0):
+  return false
  var group: Array = []
  var positions: Array[Vector2] = []
  for u in units:
   if u.team == 0 and u.hp > 0 and ids.has(u.id):
+   if queued and u.queue.size() + (0 if u.order.is_empty() else 1) >= MAX_ORDERS:
+    return false
    group.append(u)
-   positions.append(u.pos)
+   # Plan each leg from the preceding destination, not the current position.
+   positions.append(u.queue[-1].pos if queued and not u.queue.is_empty() else u.order.pos if queued and not u.order.is_empty() else u.pos)
+ if group.is_empty():
+  return false
  var destinations = FormationOrders.destinations(positions, pos, formation)
  for i in group.size():
-  group[i].order = {"pos":destinations[i],"target_id":target_id}
-  group[i].direct = Vector2.ZERO
+  var u = group[i]
+  var order = {"pos":destinations[i],"target_id":target_id}
+  if queued and not u.order.is_empty():
+   u.queue.append(order)
+  else:
+   u.order = order
+   u.queue.clear()
+  u.direct = Vector2.ZERO
+ return true
+
+func hold(ids: Array):
+ for u in units:
+  if u.team == 0 and u.hp > 0 and ids.has(u.id):
+   u.order = {}
+   u.queue.clear()
+   u.direct = Vector2.ZERO
+
+func direct_control(id: int, direction: Vector2):
+ if not direction.is_finite(): return
+ for u in units:
+  if u.id == id and u.team == 0 and u.hp > 0:
+   if direction != Vector2.ZERO:
+    hold([id])
+   u.direct = direction.limit_length()
+
+func advance_order(u: Dictionary):
+ if u.order.is_empty(): return
+ var target_id: int = u.order.get("target_id", -1)
+ var complete: bool = u.pos.distance_to(u.order.pos) <= 0.5 if target_id == -1 else not units.any(func(e): return e.id == target_id and e.hp > 0)
+ if complete:
+  u.order = {} if u.queue.is_empty() else u.queue.pop_front()
 
 static func cover(pos: Vector2) -> bool:
  return Rect2(39,7.5,22,11.5).has_point(pos) or Rect2(39,46.5,22,11.5).has_point(pos)
@@ -81,6 +118,8 @@ func tick(dt: float = STEP):
  for u in units:
   if u.hp <= 0:
    continue
+  if u.team == 0:
+   advance_order(u)
   u.cooldown = maxf(0, u.cooldown-dt)
   if u.team == 1:
    u.order = {"pos":points[u.id%2].pos if u.type == "scout" else Vector2(15,24+(u.id%3)*8), "target_id":-1}
