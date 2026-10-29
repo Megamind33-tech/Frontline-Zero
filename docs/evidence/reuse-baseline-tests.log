@@ -1,0 +1,16 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+PASS: balanced default armies
+PASS: invalid payload rejected
+PASS: modules affect stats
+PASS: budget enforced
+PASS: direct control isolates unit
+PASS: AI advances and combat damages units
+PASS: headquarters victory
+PASS: army defeat
+PASS: persistent write
+PASS: reload and duplicate idempotency
+PASS: heavy armor siege is viable against AI
+BENCHMARK: median=0.0404 ms/step; max=0.0727 ms/step; 10 units; headless host only
+PASS: host simulation below 2 ms/step
+TOTAL: 12 checks passed; 0 failed

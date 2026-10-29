@@ -3,6 +3,7 @@ const Sim = preload("res://src/simulation.gd")
 const Campaign = preload("res://src/campaign.gd")
 var sim
 var selected: Array = []
+var command_formation = "box"
 var visuals: Dictionary = {}
 var camera: Camera3D
 var status: Label
@@ -135,6 +136,10 @@ func ui():
  button(box,"Deploy custom force",func(): loadout=["custom","custom","scout","artillery"]; deploy())
  pause_button = button(box,"Resume",func(): paused=not paused; pause_button.text="Resume" if paused else "Pause"; clear_direct())
  button(box,"Select all",select_all)
+ var formation_button = button(box,"Formation: Box",func(): pass)
+ formation_button.pressed.connect(func():
+  command_formation = "line" if command_formation == "box" else "box"
+  formation_button.text = "Formation: " + command_formation.capitalize())
  button(box,"Hold position",func():
   clear_direct()
   for u in sim.units:
@@ -280,7 +285,7 @@ func _unhandled_input(event):
  var target_id=-1
  for u in sim.units:
   if u.hp>0 and u.team==1 and u.pos.distance_to(p)<3: target_id=u.id
- sim.command(selected,p,target_id)
+ sim.command(selected,p,target_id,command_formation)
 
 func _physics_process(dt):
  if sim==null or paused or not sim.result.is_empty(): return

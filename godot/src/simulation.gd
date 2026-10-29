@@ -1,4 +1,5 @@
 extends RefCounted
+const FormationOrders = preload("res://src/formation_orders.gd")
 ## Deterministic battle model. Coordinates are horizontal world meters.
 const STEP = 1.0 / 30.0
 const PRESETS = {
@@ -54,15 +55,19 @@ func spawn(team: int, b: Dictionary, pos: Vector2):
  u.merge({"id":units.size()+1,"team":team,"pos":pos,"max_hp":b.hp,"cooldown":0.0,"order":{},"direct":Vector2.ZERO})
  units.append(u)
 
-func command(ids: Array, pos: Vector2, target_id: int = -1):
+func command(ids: Array, pos: Vector2, target_id: int = -1, formation: String = "box"):
  if not pos.is_finite():
   return
- var i = 0
+ var group: Array = []
+ var positions: Array[Vector2] = []
  for u in units:
   if u.team == 0 and u.hp > 0 and ids.has(u.id):
-   u.order = {"pos":(pos+Vector2((i%3)*2.2,floori(i/3.0)*2.2)).clamp(Vector2(1.5,1.5),Vector2(98.5,63.5)),"target_id":target_id}
-   u.direct = Vector2.ZERO
-   i += 1
+   group.append(u)
+   positions.append(u.pos)
+ var destinations = FormationOrders.destinations(positions, pos, formation)
+ for i in group.size():
+  group[i].order = {"pos":destinations[i],"target_id":target_id}
+  group[i].direct = Vector2.ZERO
 
 static func cover(pos: Vector2) -> bool:
  return Rect2(39,7.5,22,11.5).has_point(pos) or Rect2(39,46.5,22,11.5).has_point(pos)
