@@ -1,0 +1,19 @@
+{
+  "license": "CC0-1.0",
+  "author": "FRONTLINE ZERO original Blender pipeline",
+  "source": "scripts/build_battle_assets.py",
+  "metrics": {
+    "tank": {
+      "triangles": 17224,
+      "articulated_meshes": 3
+    },
+    "scout": {
+      "triangles": 14000,
+      "articulated_meshes": 3
+    },
+    "artillery": {
+      "triangles": 17360,
+      "articulated_meshes": 3
+    }
+  }
+}

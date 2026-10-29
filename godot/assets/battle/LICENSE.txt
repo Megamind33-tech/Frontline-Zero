@@ -1,0 +1,16 @@
+FRONTLINE ZERO — IRON CROSSING original art
+
+The original procedural vehicle/command-post geometry and recoil animation in
+this directory, and the originally generated pine-foliage.png and woodland-ground.png
+artwork, are dedicated under CC0 1.0 Universal:
+https://creativecommons.org/publicdomain/zero/1.0/
+
+Geometry authoring source: scripts/build_battle_assets.py (Blender 4.3.2).
+Design reference: art/concepts/iron-crossing-design.png, AI-assisted original
+concept drawing generated for this project. Foliage and ground material were
+also generated originally for this project. No proprietary game artwork was
+used as an input, and no third-party model pack is included.
+
+This dedication covers artwork, not Blender, Godot, authoring tools or original
+game code. Their licenses remain separate. Preserve the existing MIT copyright
+and permission notice for godot/third_party/rts_advanced in game distributions.

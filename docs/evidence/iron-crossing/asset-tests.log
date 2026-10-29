@@ -1,0 +1,21 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+PASS: tank preserves separate chassis/turret/gun groups
+PASS: tank retains named articulation
+PASS: tank imports recoil animation
+PASS: tank uses one draw surface per articulated group
+PASS: tank retains baked paint/material identity
+PASS: tank preserves compact footprint and meter-scale chassis
+PASS: scout preserves separate chassis/turret/gun groups
+PASS: scout retains named articulation
+PASS: scout imports recoil animation
+PASS: scout uses one draw surface per articulated group
+PASS: scout retains baked paint/material identity
+PASS: scout preserves compact footprint and meter-scale chassis
+PASS: artillery preserves separate chassis/turret/gun groups
+PASS: artillery retains named articulation
+PASS: artillery imports recoil animation
+PASS: artillery uses one draw surface per articulated group
+PASS: artillery retains baked paint/material identity
+PASS: artillery preserves compact footprint and meter-scale chassis
+TOTAL: 18 battle asset checks, 0 failed
