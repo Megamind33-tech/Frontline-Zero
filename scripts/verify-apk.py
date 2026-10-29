@@ -13,11 +13,12 @@ with zipfile.ZipFile(path) as apk:
         'lib/arm64-v8a/libgodot_android.so',
         'lib/armeabi-v7a/libgodot_android.so',
         'assets/third_party/rts_advanced/LICENSE.txt',
+        'assets/assets/battle/LICENSE.txt',
     ]
     missing = [name for name in required if name not in apk.namelist()]
     if missing:
         raise SystemExit('FAIL: APK missing ' + ', '.join(missing))
-    notice = apk.read(required[-1]).decode('utf-8')
+    notice = apk.read('assets/third_party/rts_advanced/LICENSE.txt').decode('utf-8')
     if 'Copyright (c) 2026 Huginhelm' not in notice or 'MIT License' not in notice:
         raise SystemExit('FAIL: formation copyright/permission notice missing')
 print('PASS: APK integrity, Android manifest, Godot data, ARM64/ARMv7 runtimes and MIT notice')

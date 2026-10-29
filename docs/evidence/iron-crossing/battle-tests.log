@@ -1,0 +1,30 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+PASS: diagnostics hidden from player by default
+PASS: workshop confined to optional briefing modal
+PASS: Begin battle enters the actual battle
+PASS: rendered battlefield uses height-field mesh
+PASS: battlefield has geometric elevation
+PASS: visual woodland zones match actual damage-cover rules
+PASS: command post displays baked concrete/steel colors
+PASS: foliage uses instancing instead of per-tree draws
+PASS: tank has modelled/merged chassis, turret and gun
+PASS: tank retains imported firing animation
+PASS: tank batches detail into one vertex-painted surface per group
+PASS: scout has modelled/merged chassis, turret and gun
+PASS: scout retains imported firing animation
+PASS: scout batches detail into one vertex-painted surface per group
+PASS: artillery has modelled/merged chassis, turret and gun
+PASS: artillery retains imported firing animation
+PASS: artillery batches detail into one vertex-painted surface per group
+PASS: commands appear for selected units
+PASS: commands hide with no selection
+PASS: camera drag moves the actual 3D view
+PASS: camera near zoom is bounded
+PASS: camera far zoom is bounded
+PASS: minimap recenters the strategy camera
+PASS: touch camera drag cannot issue an unintended unit command
+PASS: projectiles and transient effect count are bounded
+PASS: effects expire instead of leaking nodes
+PASS: destroyed vehicles become wrecks and lose selection markers
+TOTAL: 27 battle checks, 0 failed

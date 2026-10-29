@@ -90,6 +90,9 @@ func run():
  touch.pressed=true
  touch.position=scene.camera.unproject_position(Vector3(50,0,25))
  scene._unhandled_input(touch)
+ touch.pressed=false
+ scene._unhandled_input(touch)
+ touch.pressed=true
  check(scene.queue_orders and scene.sim.units[0].queue.size()==2, "mobile Queue orders toggle appends touch command")
  scene.queue_button.button_pressed=false
  event.shift_pressed=false
@@ -97,6 +100,9 @@ func run():
  check(scene.sim.units[0].queue.is_empty(), "unmodified scene input replaces queue")
  scene.queue_button.button_pressed=true
  scene._unhandled_input(touch)
+ touch.pressed=false
+ scene._unhandled_input(touch)
+ touch.pressed=true
  for b in scene.find_children("*","Button",true,false):
   if b.text=="Hold position": b.pressed.emit()
  check(scene.sim.units[0].order.is_empty() and scene.sim.units[0].queue.is_empty(), "Hold button cancels queued scene commands")
