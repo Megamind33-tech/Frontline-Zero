@@ -1,0 +1,39 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> frontline-zero@0.1.0 verify
+> npm test && npm run benchmark && npm run build
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> frontline-zero@0.1.0 test
+> node --test tests/core.test.js
+
+✔ three distinct unit roles and equal starting budgets (1.289899ms)
+✔ modules alter stats; illegal payload and unknown modules rejected (0.53348ms)
+✔ direct control moves only selected unit and bounds are enforced (22.348128ms)
+✔ orders ignore enemies and nonfinite destinations (0.594032ms)
+✔ AI advances and combat causes damage (15.033449ms)
+✔ headquarters, elimination and time-limit outcome paths (0.503851ms)
+✔ capture, contested relay and ownership reversal (3.55899ms)
+✔ outcomes survive reload, duplicate recording is idempotent, corrupt saves recover (0.620199ms)
+✔ fixed-step validation and finished battles are immutable (0.423939ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 167.789409
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> frontline-zero@0.1.0 benchmark
+> node scripts/benchmark.js
+
+{"environment":"host Node simulation only; excludes GPU, rendering, Android and thermals","battles":30,"stepsPerBattle":1800,"units":10,"medianStepMs":0.005348760555555556,"p95StepMs":0.0075580522222222155,"budgetMs":2}
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> frontline-zero@0.1.0 build
+> node scripts/build.js
+
+Built standalone offline dist/FRONTLINE_ZERO.html

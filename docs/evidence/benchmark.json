@@ -1,0 +1,9 @@
+{
+  "environment": "host Node simulation only; excludes GPU, rendering, Android and thermals",
+  "battles": 30,
+  "stepsPerBattle": 1800,
+  "units": 10,
+  "medianStepMs": 0.005348760555555556,
+  "p95StepMs": 0.0075580522222222155,
+  "budgetMs": 2
+}

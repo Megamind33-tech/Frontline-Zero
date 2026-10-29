@@ -1,0 +1,4 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+TACTIC territory: {"reason":"army eliminated","seconds":24,"winner":1} score=[22.6333333333336, 0.0] HQ=1552.0/1600.0
+TACTIC siege: {"reason":"HQ destroyed","seconds":50,"winner":0} score=[0.0, 79.2666666666647] HQ=1600.0/-32.0
