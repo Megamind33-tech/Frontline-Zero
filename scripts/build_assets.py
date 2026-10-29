@@ -1,6 +1,8 @@
 """Original low-poly GLB unit generator. Blender --background --python this.py -- output_dir."""
 import bpy,math,sys,pathlib,json
 out=pathlib.Path(sys.argv[sys.argv.index('--')+1]).resolve();out.mkdir(parents=True,exist_ok=True)
+sources=out/'sources';sources.mkdir(exist_ok=True)
+metrics={}
 def mat(name,c):
  m=bpy.data.materials.new(name);m.diffuse_color=(*c,1);return m
 def box(name,p,s,m,parent=None):
@@ -27,6 +29,10 @@ for role in ['scout','tank','artillery']:
  for frame,y in [(1,-1.35),(4,-1.12),(12,-1.35)]:
   barrel.location.y=y;barrel.keyframe_insert(data_path='location',frame=frame,group='Recoil')
  bpy.context.scene.frame_end=12
+ bpy.context.scene.frame_set(1)
+ bpy.ops.wm.save_as_mainfile(filepath=str(sources/(role+'.blend')))
+ meshes=[o for o in bpy.context.scene.objects if o.type=='MESH']
+ metrics[role]={'meshes':len(meshes),'triangles':sum(sum(len(p.vertices)-2 for p in o.data.polygons) for o in meshes)}
  bpy.ops.export_scene.gltf(filepath=str(out/(role+'.glb')),export_format='GLB',export_animations=True,export_apply=True)
  print('GENERATED',role,flush=True)
-(out/'manifest.json').write_text(json.dumps({'author':'FRONTLINE ZERO procedural pipeline','license':'CC0-1.0','source':'scripts/build_assets.py','assets':['scout.glb','tank.glb','artillery.glb'],'animation':'Barrel recoil action, 12 frames','purpose':'Prototype assets'},indent=2))
+(out/'manifest.json').write_text(json.dumps({'author':'FRONTLINE ZERO procedural pipeline','license':'CC0-1.0','source':'scripts/build_assets.py','assets':['scout.glb','tank.glb','artillery.glb'],'animation':'Barrel recoil action, 12 frames','purpose':'Prototype assets','sources':['sources/'+r+'.blend' for r in ['scout','tank','artillery']],'metrics':metrics},indent=2))

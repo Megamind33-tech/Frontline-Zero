@@ -1,0 +1,25 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+PASS: first order accepted
+PASS: movement visits ordered corners then completes
+PASS: completed queue drains
+PASS: capacity includes active order
+PASS: overflow rejects whole group without partial dispatch
+PASS: normal command replaces full queue
+PASS: nonfinite and invalid/friendly targets rejected
+PASS: invalid commands preserve active and pending orders
+PASS: dead target and unauthorized selection rejected
+PASS: hold clears active and pending orders
+PASS: direct control cancels queue permanently on release
+PASS: live focus target keeps order active at destination
+PASS: target death advances to queued move
+PASS: queued formations plan from previous destinations using licensed helper
+PASS: queued focus fire preserves shared target
+PASS: duplicate/dead/enemy/unknown IDs cannot add extra orders
+PASS: desktop Shift appends through scene input
+PASS: mobile Queue orders toggle appends touch command
+PASS: unmodified scene input replaces queue
+PASS: Hold button cancels queued scene commands
+PASS: touch drive cancels queues through physics dispatch
+PASS: released touch drive does not resume old orders
+TOTAL: 22 queue checks, 0 failed

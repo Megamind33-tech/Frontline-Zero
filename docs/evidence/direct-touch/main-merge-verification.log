@@ -1,0 +1,11 @@
+Merge verification against latest main ee6dcd57eac6b8a287069e922172524b10e1f985 and feature 660b154.
+TOTAL: 18 battle asset checks, 0 failed
+TOTAL: 12 checks passed; 0 failed
+TOTAL: 22 formation checks, 0 failed
+TOTAL: 22 queue checks, 0 failed
+TOTAL: 27 battle checks, 0 failed
+TOTAL: 38 direct-touch checks, 0 failed
+ℹ tests 9
+ℹ fail 0
+Asset generation, import, 90-frame scene startup, host benchmarks and standalone HTML build passed.
+No physical Android device or thermal acceptance claimed. Existing APK/source code unchanged.

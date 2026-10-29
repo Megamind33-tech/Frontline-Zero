@@ -1,0 +1,21 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+PASS: scout GLB parses in Godot
+PASS: scout creates a 3D scene
+PASS: scout contains vehicle geometry
+PASS: scout stays below 20k exported vertices
+PASS: scout has meter-scale Godot Y-up bounds
+PASS: scout retains recoil animation
+PASS: tank GLB parses in Godot
+PASS: tank creates a 3D scene
+PASS: tank contains vehicle geometry
+PASS: tank stays below 20k exported vertices
+PASS: tank has meter-scale Godot Y-up bounds
+PASS: tank retains recoil animation
+PASS: artillery GLB parses in Godot
+PASS: artillery creates a 3D scene
+PASS: artillery contains vehicle geometry
+PASS: artillery stays below 20k exported vertices
+PASS: artillery has meter-scale Godot Y-up bounds
+PASS: artillery retains recoil animation
+TOTAL: 18 art pipeline checks, 0 failed

@@ -1,0 +1,19 @@
+TOTAL: 18 battle asset checks, 0 failed
+BENCHMARK: median=0.0243 ms/step; max=0.0259 ms/step; 10 units; headless host only
+TOTAL: 12 checks passed; 0 failed
+BENCHMARK: 0.0180 ms/group command, 1000 commands of 12 units, headless host only
+TOTAL: 22 formation checks, 0 failed
+TOTAL: 22 queue checks, 0 failed
+TOTAL: 27 battle checks, 0 failed
+TOTAL: 38 direct-touch checks, 0 failed
+ℹ tests 9
+ℹ fail 0
+APK v2/v3 signature and ZIP/Android manifest/ARM64+ARMv7/native data/MIT+CC0 notices verified.
+APK is a complete debug-signed Android package, not a PCK. No phone is attached.
+Actual engine recording: 33.9 seconds, input/HUD gestures, saved army-elimination defeat at 30 simulated seconds.
+Previous presentation recording: saved HQ victory at 50 simulated seconds. Original siege regression remains passing.
+Video reviewed at management, advanced queue and defeat/persistence frames. Final HQ text wrapping also captured in-engine.
+Software Mesa llvmpipe on 3 vCPUs, 1280x720; host frame time is not Android performance. Physical RAM/thermals/touch latency unmeasured.
+FRONTLINE_ZERO-direct-touch-debug.apk: 62915291 bytes, SHA256 020850dd54b4ea5e0e06e423a5e761e091506bb0a9dfbd03d5874788286cc472
+DIRECT_TOUCH-gameplay.mp4: 5375674 bytes, SHA256 3a2ecf6899261226581318c6a639be52dc1ddf7ed5ff834bb6715a5930179858
+IRON_CROSSING-in-engine.png: 1387457 bytes, SHA256 87f12edcca4eae8d173e5294357779a7c879abd5e6c2c307e423ff6c1ec02f4e

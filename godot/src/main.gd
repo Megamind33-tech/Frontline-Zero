@@ -1,9 +1,32 @@
 extends Node3D
 const Sim = preload("res://src/simulation.gd")
 const Campaign = preload("res://src/campaign.gd")
+const Field = preload("res://src/battlefield.gd")
+const HUD = preload("res://src/battle_hud.gd")
+const Effects = preload("res://src/battle_effects.gd")
+const TouchCommands = preload("res://src/touch_commands.gd")
+const Groups = preload("res://src/control_groups.gd")
+var touch_input=TouchCommands.new()
+var control_groups=Groups.new()
+var additive_selection=false
+var order_feedback: Array=[]
+var armor_paint=ShaderMaterial.new()
+var hud
+var effects
+var camera_focus = Vector2(43,32.5)
+var camera_yaw = 0.0
+var camera_zoom = 48.0
+var frame_samples: Array = []
+var draw_samples: Array = []
+var last_frame_usec = 0
+var peak_memory = 0.0
+var peak_video_memory = 0.0
+var hud_elapsed = 0.0
 var sim
 var selected: Array = []
 var command_formation = "box"
+var queue_orders = false
+var queue_button: Button
 var visuals: Dictionary = {}
 var camera: Camera3D
 var status: Label
@@ -47,31 +70,35 @@ func cube(parent: Node3D, at: Vector3, size: Vector3, color: Color) -> MeshInsta
  return n
 
 func _ready():
+ touch_input.battle=self
+ armor_paint.shader=load("res://src/armor.gdshader")
  for role in ["scout","tank","artillery"]:
-  var path = "res://assets/%s.tscn" % role
+  var path = "res://assets/battle/%s.glb" % role
   if ResourceLoader.exists(path):
    model_scenes[role] = load(path)
  var light = DirectionalLight3D.new()
  light.rotation_degrees = Vector3(-55,-25,0)
- light.light_energy = 1.3
- light.shadow_enabled = false
+ light.light_energy = .85
+ light.light_color = Color("fff0da")
+ light.shadow_enabled = true
+ light.directional_shadow_max_distance = 120
  add_child(light)
  var world = WorldEnvironment.new()
  world.environment = Environment.new()
  world.environment.background_mode = Environment.BG_COLOR
- world.environment.background_color = Color("17241f")
+ world.environment.background_color = Color("a7afa1")
  world.environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
- world.environment.ambient_light_color = Color("c9d3b9")
- world.environment.ambient_light_energy = 0.65
+ world.environment.ambient_light_color = Color("bccdc4")
+ world.environment.ambient_light_energy = 0.35
  world.environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+ world.environment.tonemap_exposure = .85
  add_child(world)
  camera = Camera3D.new()
  add_child(camera)
  camera.projection = Camera3D.PROJECTION_ORTHOGONAL
  camera.size = 82
- camera.h_offset = 13
- camera.position = Vector3(50,100,94)
- camera.look_at(Vector3(50,0,32.5))
+ camera.h_offset = 0
+ update_camera()
  ui()
  reset_battle()
 
@@ -99,71 +126,9 @@ func button(parent: Node, text: String, action: Callable) -> Button:
  return b
 
 func ui():
- var layer = CanvasLayer.new()
- add_child(layer)
- var top = PanelContainer.new()
- top.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
- layer.add_child(top)
- var topbox = VBoxContainer.new()
- top.add_child(topbox)
- status = Label.new()
- status.text = "FRONTLINE ZERO / OFFLINE VERTICAL SLICE"
- topbox.add_child(status)
- campaign_text = Label.new()
- topbox.add_child(campaign_text)
- var panel = PanelContainer.new()
- panel.set_anchors_and_offsets_preset(Control.PRESET_RIGHT_WIDE)
- panel.offset_left = -270
- panel.offset_top = 60
- panel.offset_bottom = -8
- layer.add_child(panel)
- var scroll = ScrollContainer.new()
- panel.add_child(scroll)
- var box = VBoxContainer.new()
- box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
- box.custom_minimum_size.x = 250
- scroll.add_child(box)
- var title = Label.new()
- title.text = "ASTER COMMAND / WORKSHOP"
- box.add_child(title)
- chassis = option(box,"CHASSIS",["tracked","wheeled"])
- weapon = option(box,"WEAPON",["cannon","autocannon","howitzer"])
- armor = option(box,"ARMOR",["light","heavy"])
- workshop_text = Label.new()
- box.add_child(workshop_text)
- button(box,"Deploy territory force",func(): loadout=["tank","tank","scout","scout","artillery"]; deploy())
- button(box,"Deploy siege force",deploy_siege)
- button(box,"Deploy custom force",func(): loadout=["custom","custom","scout","artillery"]; deploy())
- pause_button = button(box,"Resume",func(): paused=not paused; pause_button.text="Resume" if paused else "Pause"; clear_direct())
- button(box,"Select all",select_all)
- var formation_button = button(box,"Formation: Box",func(): pass)
- formation_button.pressed.connect(func():
-  command_formation = "line" if command_formation == "box" else "box"
-  formation_button.text = "Formation: " + command_formation.capitalize())
- button(box,"Hold position",func():
-  clear_direct()
-  for u in sim.units:
-   if selected.has(u.id): u.order={})
- unit_text = Label.new()
- box.add_child(unit_text)
- var pad = GridContainer.new()
- pad.columns = 3
- box.add_child(pad)
- for item in [["",Vector2.ZERO],["↑",Vector2.UP],["",Vector2.ZERO],["←",Vector2.LEFT],["↓",Vector2.DOWN],["→",Vector2.RIGHT]]:
-  var b = Button.new()
-  b.text = item[0]
-  b.custom_minimum_size = Vector2(70,48)
-  b.disabled = item[0].is_empty()
-  pad.add_child(b)
-  var axis: Vector2 = item[1]
-  b.button_down.connect(func(): pad_axes[b.get_instance_id()]=axis; touching=true)
-  b.button_up.connect(func(): pad_axes.erase(b.get_instance_id()); touching=not pad_axes.is_empty())
- message = Label.new()
- message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
- message.custom_minimum_size.x = 230
- box.add_child(message)
- message.text = "Tap friendly unit, then ground to move or enemy to focus fire. WASD/arrows/pad directly drive one selected unit. Units fire automatically. Relays: 120 combined seconds, or destroy HQ. Woods absorb 40% damage. Mud slows units."
- update_blueprint()
+ hud=HUD.new()
+ add_child(hud)
+ hud.setup(self)
 
 func update_blueprint():
  if not is_instance_valid(workshop_text) or not is_instance_valid(armor): return
@@ -195,6 +160,9 @@ func deploy():
  message.text = "Command confirmed. Capture both relays or destroy Veyr HQ."
 
 func reset_battle(candidate = null):
+ hud.close_advanced();hud.building_panel.hide()
+ touch_input.cancel()
+ order_feedback.clear()
  clear_direct()
  if is_instance_valid(map_root):
   remove_child(map_root)
@@ -210,30 +178,21 @@ func reset_battle(candidate = null):
  battle_id = str(Time.get_unix_time_from_system())+"-"+str(Time.get_ticks_usec())
  saved = false
  accumulator = 0
- cube(map_root,Vector3(50,-0.5,32.5),Vector3(100,1,65),Color("526549"))
- cube(map_root,Vector3(50,0.015,32.5),Vector3(100,0.03,6),Color("797b68"))
- cube(map_root,Vector3(50,0.025,32.5),Vector3(12,0.05,18),Color("635c40"))
+ Field.build(map_root)
+ effects=Effects.new()
+ map_root.add_child(effects)
  for p in sim.points:
-  cube(map_root,Vector3(p.pos.x,0.02,p.pos.y),Vector3(22,0.04,11.5),Color("354d32"))
-  var relay = cube(map_root,Vector3(p.pos.x,2,p.pos.y),Vector3(1,4,1),Color("ded7b1"))
-  relay_visuals.append(relay)
-  for i in 14:
-   var x = 40+(i%7)*3.2
-   var z = p.pos.y-4 if i<7 else p.pos.y+4
-   cube(map_root,Vector3(x,1.7,z),Vector3(1.4,3.4,1.4),Color("273e2c"))
+  relay_visuals.append(Field.relay(map_root,p.pos))
  for h in sim.hq:
-  var n = cube(map_root,Vector3(h.pos.x,1.5,h.pos.y),Vector3(5,3,6),Color("91ad72") if h.team==0 else Color("b47c65"))
-  cube(n,Vector3(0,2,0),Vector3(3,1,3),Color("343f35"))
-  hq_visuals.append(n)
+  hq_visuals.append(Field.hq(map_root,h.pos,h.team))
  for u in sim.units:
   var n = Node3D.new()
   map_root.add_child(n)
-  if model_scenes.has(u.type):
-   var model = model_scenes[u.type].instantiate()
-   n.add_child(model)
-  else:
-   cube(n,Vector3(0,0.7,0),Vector3(2,1.4,3),Color("82995f"))
-  var badge = cube(n,Vector3(0,2.3,0),Vector3(1.2,0.15,0.7),Color("d6ec9a") if u.team==0 else Color("ec9272"))
+  var model=model_scenes[u.type].instantiate()
+  n.add_child(model)
+  var paint=armor_paint.duplicate()
+  paint.set_shader_parameter("team_color",Color("bacd8d") if u.team==0 else Color("ce8a62"))
+  for mesh in model.find_children("*","MeshInstance3D",true,false):mesh.material_override=paint
   var ring = MeshInstance3D.new()
   var torus = TorusMesh.new()
   torus.inner_radius=1.9
@@ -241,11 +200,12 @@ func reset_battle(candidate = null):
   torus.rings=12
   torus.ring_segments=12
   ring.mesh=torus
-  ring.material_override=material(Color("fff6ad"))
+  ring.material_override=Field.mat("selection",Color("d5dba0"))
+  ring.material_override.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
   n.add_child(ring)
   ring.position.y=0.13
   ring.visible=false
-  visuals[u.id]={"node":n,"ring":ring,"badge":badge,"last":u.pos,"animation":n.find_child("AnimationPlayer",true,false)}
+  visuals[u.id]={"node":n,"ring":ring,"last":u.pos,"animation":n.find_child("AnimationPlayer",true,false),"turret":n.find_child("Turret",true,false),"paint":paint,"travel":0.,"meshes":n.find_children("*","MeshInstance3D",true,false),"hp":u.hp,"damage":0.,"dead":false,"aim":u.pos+Vector2(1 if u.team==0 else -1,0)}
  update_visuals(0)
  refresh_campaign()
 
@@ -263,29 +223,135 @@ func clear_direct():
 func _notification(what):
  if what==NOTIFICATION_APPLICATION_FOCUS_OUT:
   paused=true
+  touch_input.cancel()
   clear_direct()
   if is_instance_valid(pause_button): pause_button.text="Resume"
 
-func _unhandled_input(event):
- var pos: Vector2
- if event is InputEventMouseButton and event.pressed and event.button_index==MOUSE_BUTTON_LEFT:
-  pos=event.position
- elif event is InputEventScreenTouch and event.pressed:
-  pos=event.position
- else: return
- if sim==null or not sim.result.is_empty(): return
- var hit = Plane(Vector3.UP,0).intersects_ray(camera.project_ray_origin(pos),camera.project_ray_normal(pos))
- if hit==null: return
- var p = Vector2(hit.x,hit.z)
+func update_camera():
+ camera_focus=camera_focus.clamp(Vector2(4,4),Vector2(96,61))
+ camera.size=camera_zoom
+ var center=Field.ground(camera_focus)
+ var offset=Vector3(sin(camera_yaw)*55,42,cos(camera_yaw)*55)
+ camera.position=center+offset
+ camera.look_at(center)
+
+func zoom_camera(amount: float):
+ camera_zoom=clampf(camera_zoom+amount,25,80)
+ update_camera()
+
+func focus_selection():
+ var center=Vector2.ZERO
+ var count=0
  for u in sim.units:
-  if u.hp>0 and u.team==0 and u.pos.distance_to(p)<3:
+  if u.hp>0 and selected.has(u.id):center+=u.pos;count+=1
+ camera_focus=center/count if count>0 else Vector2(50,32.5)
+ update_camera()
+
+func pan_camera(relative: Vector2):
+ var factor=camera_zoom/get_viewport().get_visible_rect().size.y
+ var right=Vector2(cos(camera_yaw),-sin(camera_yaw))
+ var forward=Vector2(sin(camera_yaw),cos(camera_yaw))
+ camera_focus-=right*relative.x*factor+forward*relative.y*factor*1.35
+ update_camera()
+
+func world_at_screen(pos: Vector2):
+ var origin=camera.project_ray_origin(pos)
+ var direction=camera.project_ray_normal(pos)
+ var hit=Plane(Vector3.UP,0).intersects_ray(origin,direction)
+ if hit==null:return null
+ # Match the rendered height field rather than clicking through hills onto y=0.
+ for i in 4:
+  var height=Field.height_at(Vector2(hit.x,hit.z))
+  hit=Plane(Vector3.UP,height).intersects_ray(origin,direction)
+  if hit==null:return null
+ return Vector2(hit.x,hit.z)
+
+func pick_screen(pos: Vector2) -> Dictionary:
+ var p=world_at_screen(pos)
+ if p==null:return {}
+ var closest: Dictionary={}
+ var distance=2.3
+ for u in sim.units:
+  var d: float=u.pos.distance_to(p)
+  if u.hp>0 and d<distance:
+   distance=d;closest={"kind":"friendly_unit" if u.team==0 else "enemy_unit","id":u.id,"pos":u.pos}
+ if not closest.is_empty():return closest
+ for h in sim.hq:
+  if h.hp>0 and h.pos.distance_to(p)<3.4:
+   return {"kind":"friendly_building" if h.team==0 else "enemy_building","id":Sim.FRIENDLY_HQ if h.team==0 else Sim.ENEMY_HQ,"pos":h.pos}
+ return {"kind":"terrain","pos":p}
+
+func select_class_near(id: int):
+ var source: Dictionary={}
+ for u in sim.units:
+  if u.id==id and u.team==0 and u.hp>0:source=u
+ if source.is_empty():return
+ if not additive_selection:selected.clear()
+ for u in sim.units:
+  if u.team==0 and u.hp>0 and u.type==source.type and u.pos.distance_to(source.pos)<=25 and not selected.has(u.id):selected.append(u.id)
+ clear_direct()
+ hud.refresh()
+
+func save_group(slot: int):
+ var err=control_groups.assign(slot,selected,sim.units)
+ message.text="Group "+str(slot)+" saved" if err==OK else "Group could not be saved"
+ hud.refresh()
+
+func recall_group(slot: int):
+ var ids=control_groups.recall(slot,sim.units)
+ if ids.is_empty():message.text="Group "+str(slot)+" has no living matching units";return
+ clear_direct();selected=ids;hud.refresh()
+
+func feedback(pos: Vector2,kind: String):
+ if pos.is_finite():
+  if order_feedback.size()>=12:order_feedback.pop_front()
+  order_feedback.append({"pos":pos,"kind":kind,"age":0.})
+  hud.overlay.queue_redraw()
+
+func dispatch_tap(hit: Dictionary,screen: Vector2,append_order: bool,double_tap: bool = false):
+ if hit.is_empty() or sim==null or not sim.result.is_empty():return
+ var kind: String=hit.kind
+ if kind=="friendly_unit":
+  var alive=sim.units.any(func(u):return u.id==hit.id and u.team==0 and u.hp>0)
+  if not alive:message.text="Unit no longer available";return
+  if double_tap:select_class_near(hit.id)
+  else:
    clear_direct()
-   selected=[u.id]
-   return
- var target_id=-1
- for u in sim.units:
-  if u.hp>0 and u.team==1 and u.pos.distance_to(p)<3: target_id=u.id
- sim.command(selected,p,target_id,command_formation)
+   if additive_selection:
+    if selected.has(hit.id):selected.erase(hit.id)
+    else:selected.append(hit.id)
+   else:selected=[hit.id]
+  hud.refresh()
+  return
+ if kind=="friendly_building":
+  hud.open_building(hit.id)
+  return
+ var target_id: int=hit.id if kind in ["enemy_unit","enemy_building"] else -1
+ var p=hit.pos if target_id!=-1 else world_at_screen(screen)
+ if p==null:return
+ if not sim.command(selected,p,target_id,command_formation,append_order):
+  message.text="Order unavailable: invalid target, outside map, or queue full"
+  feedback(p,"reject")
+ else:
+  var label_="Attack confirmed" if target_id!=-1 else "Waypoint queued" if append_order else "Move confirmed"
+  message.text=label_+"  /  "+str(selected.size())+" units"
+  feedback(p,"attack" if target_id!=-1 else "move")
+ hud.refresh()
+
+func _input(event):
+ if sim!=null and touch_input.handle(event):get_viewport().set_input_as_handled()
+
+func _unhandled_input(event):
+ if event is InputEventKey and event.pressed and not event.echo:
+  if event.keycode==KEY_F3:hud.developer.visible=not hud.developer.visible
+  elif event.keycode==KEY_Q:camera_yaw-=.15;update_camera()
+  elif event.keycode==KEY_E:camera_yaw+=.15;update_camera()
+  elif event.keycode==KEY_ESCAPE:hud.briefing.visible=not hud.briefing.visible;paused=true;touch_input.cancel();clear_direct()
+  elif event.keycode in [KEY_1,KEY_2,KEY_3]:
+   var slot=event.keycode-KEY_1+1
+   if event.ctrl_pressed:save_group(slot)
+   else:recall_group(slot)
+ else:touch_input.handle(event)
 
 func _physics_process(dt):
  if sim==null or paused or not sim.result.is_empty(): return
@@ -296,12 +362,13 @@ func _physics_process(dt):
   direct=Vector2(float(Input.is_physical_key_pressed(KEY_D) or Input.is_physical_key_pressed(KEY_RIGHT))-float(Input.is_physical_key_pressed(KEY_A) or Input.is_physical_key_pressed(KEY_LEFT)),float(Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_DOWN))-float(Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_UP)))
  for u in sim.units:
   u.direct=direct if selected.size()==1 and selected.has(u.id) else Vector2.ZERO
-  if u.direct!=Vector2.ZERO: u.order={}
+  if u.direct!=Vector2.ZERO: sim.direct_control(u.id,u.direct)
  accumulator+=minf(dt,0.1)
  while accumulator>=Sim.STEP and sim.result.is_empty():
   sim.tick()
   for shot in sim.shots:
-   active_shots.append({"shot":shot,"ttl":0.12})
+   effects.shot(shot,sim.units[shot.id-1].type)
+   visuals[shot.id].aim=shot.to
    var ap = visuals[shot.id].animation
    if ap is AnimationPlayer:
     for a in ap.get_animation_list():
@@ -312,51 +379,54 @@ func _physics_process(dt):
   var err = Campaign.save_result(sim.result,battle_id)
   message.text=("VICTORY" if sim.result.winner==0 else "DEFEAT" if sim.result.winner==1 else "DRAW")+" / "+sim.result.reason+(". Saved locally." if err==OK else ". SAVE FAILED: "+error_string(err))
   refresh_campaign()
+  hud.show_result(sim.result)
 
 func _process(dt):
- if sim==null: return
+ if sim==null:return
+ var now=Time.get_ticks_usec()
+ if last_frame_usec>0 and frame_samples.size()<10000:
+  frame_samples.append((now-last_frame_usec)/1000.0)
+  draw_samples.append(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME))
+ last_frame_usec=now
+ peak_memory=maxf(peak_memory,Performance.get_monitor(Performance.MEMORY_STATIC))
+ peak_video_memory=maxf(peak_video_memory,Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED))
+ touch_input.advance(Time.get_ticks_msec())
+ for item in order_feedback:item.age+=dt
+ order_feedback=order_feedback.filter(func(item):return item.age<1.)
  update_visuals(dt)
- status.text="FRONTLINE ZERO | ASTER %d/120 — VEYR %d/120 | %ds | %d FPS | %d draws | %.1f MB video" % [sim.score[0],sim.score[1],sim.time,Engine.get_frames_per_second(),Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME),Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED)/1048576.0]
- var text="SELECTED: "+str(selected)+"\n"
- for u in sim.units:
-  if u.team==0: text+="%s %d / %d HP\n" % [u.type,u.id,maxi(0,ceili(u.hp))]
- unit_text.text=text
- queue_redraw_if_needed()
+ hud_elapsed+=dt
+ if hud_elapsed>.1:
+  hud.refresh();hud_elapsed=0
+  status.text="%d FPS  |  %d draws  |  %.1f MB video\n%.1f MB static  |  simulation 30 Hz" % [Engine.get_frames_per_second(),Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME),peak_video_memory/1048576.,peak_memory/1048576.]
+  unit_text.text="units: "+str(sim.units.size())+" | active FX: "+str(effects.items.size())+"\nSave: "+str(saved)+" | Camera size: "+str(camera_zoom)
+ hud.overlay.queue_redraw();hud.minimap.queue_redraw()
 
 func update_visuals(dt: float):
  for u in sim.units:
   var v=visuals[u.id]
   var n: Node3D=v.node
-  n.position=Vector3(u.pos.x,0,u.pos.y)
+  n.position=Field.ground(u.pos)
   var direction: Vector2=u.pos-v.last
-  if direction.length()>0.001: n.rotation.y=atan2(-direction.x,-direction.y)
+  if direction.length()>.001:n.rotation.y=lerp_angle(n.rotation.y,atan2(direction.x,direction.y),minf(1,dt*12) if dt>0 else 1.)
+  v.travel+=direction.length()
+  v.paint.set_shader_parameter("tread_phase",v.travel)
   v.last=u.pos
-  n.scale=Vector3.ONE if u.hp>0 else Vector3(1,0.2,1)
+  if v.turret!=null:
+   var aim: Vector2=v.aim-u.pos
+   if aim.length()>.01:v.turret.rotation.y=lerp_angle(v.turret.rotation.y,atan2(aim.x,aim.y)-n.rotation.y,minf(1,dt*8))
+  if u.hp<v.hp:v.damage=.12
+  v.hp=u.hp
+  v.damage=maxf(0,v.damage-dt)
+  var meshes: Array=v.meshes
+  if u.hp<=0 and not v.dead:
+   v.dead=true;effects.destroyed(n.position);n.rotation.z=.08
+   for mesh in meshes:
+    if mesh!=v.ring:mesh.material_override=Field.mat("wreck",Color("34382f"))
+  var flash=Field.mat("damage flash",Color(1,.40,.18,.22))
+  flash.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA
+  flash.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
+  for mesh in meshes:
+   if mesh!=v.ring:mesh.material_overlay=flash if v.damage>0 else null
   v.ring.visible=selected.has(u.id) and u.hp>0
-  v.badge.scale.x=maxf(0.01,u.hp/u.max_hp)
  for i in relay_visuals.size():
-  relay_visuals[i].material_override.albedo_color=Color("d6ec9a") if sim.points[i].owner==0 else Color("ec9272") if sim.points[i].owner==1 else Color("ded7b1")
- for item in active_shots: item.ttl-=dt
- active_shots=active_shots.filter(func(item):return item.ttl>0)
-
-func queue_redraw_if_needed():
- # Short-lived tracers use an ImmediateMesh; one draw for all active shots.
- var old=map_root.get_node_or_null("Tracers")
- if old!=null:
-  map_root.remove_child(old)
-  old.queue_free()
- if active_shots.is_empty(): return
- var mesh=ImmediateMesh.new()
- mesh.surface_begin(Mesh.PRIMITIVE_LINES)
- for item in active_shots:
-  var s=item.shot
-  mesh.surface_add_vertex(Vector3(s.from.x,1.5,s.from.y))
-  mesh.surface_add_vertex(Vector3(s.to.x,1.5,s.to.y))
- mesh.surface_end()
- var n=MeshInstance3D.new()
- n.name="Tracers"
- n.mesh=mesh
- var m=material(Color("ffe0a0"))
- m.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
- n.material_override=m
- map_root.add_child(n)
+  relay_visuals[i].material_override=Field.mat("beacon "+str(sim.points[i].owner),Color("bddc95") if sim.points[i].owner==0 else Color("d38c65") if sim.points[i].owner==1 else Color("d8c590"))

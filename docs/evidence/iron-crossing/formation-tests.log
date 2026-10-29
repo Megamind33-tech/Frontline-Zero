@@ -1,0 +1,26 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+PASS: empty selection is a no-op
+PASS: nonfinite target rejected
+PASS: single-unit destination unchanged
+PASS: line is perpendicular to eastward travel
+PASS: line slots reserve vehicle clearance
+PASS: box assigns one distinct spaced slot per unit
+PASS: same inputs produce deterministic assignments
+PASS: unknown shape safely falls back to box
+PASS: 12-unit formations remain spaced at all four map edges
+PASS: assignment follows proximity rather than reversing input ranks
+PASS: focus-fire target survives formation adapter
+PASS: dead/enemy/unknown IDs ignored
+PASS: new order ends direct movement
+PASS: simulation dispatches spaced group destinations
+PASS: formation order uses existing movement loop
+PASS: invalid target does not erase prior order
+BENCHMARK: 0.0203 ms/group command, 1000 commands of 12 units, headless host only
+PASS: host formation generation below 2ms/command
+PASS: Android export includes MIT notice
+PASS: vendored copyright and permission notice retained
+PASS: touch-accessible formation button exists
+PASS: touch button changes active shape
+PASS: scene input dispatches formation command
+TOTAL: 22 formation checks, 0 failed

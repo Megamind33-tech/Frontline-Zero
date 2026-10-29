@@ -19,3 +19,4 @@ cat dist/android-export.log
 if rg -q 'SCRIPT ERROR:|^ERROR:' dist/android-export.log; then exit 1; fi
 "$ANDROID_HOME/build-tools/35.0.1/apksigner" verify --verbose dist/FRONTLINE_ZERO-debug.apk
 unzip -t dist/FRONTLINE_ZERO-debug.apk
+python3 scripts/verify-apk.py dist/FRONTLINE_ZERO-debug.apk
