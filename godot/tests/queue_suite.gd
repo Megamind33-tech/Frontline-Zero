@@ -9,6 +9,12 @@ func check(ok: bool, label: String):
  else:
   failures += 1
   push_error("FAIL: " + label)
+func click(scene,event):
+ event.pressed=true
+ scene._unhandled_input(event)
+ event.pressed=false
+ scene._unhandled_input(event)
+ event.pressed=true
 func _initialize():
  call_deferred("run")
 func run():
@@ -75,15 +81,16 @@ func run():
  var scene = load("res://main.tscn").instantiate()
  root.add_child(scene)
  await process_frame
+ scene.hud.briefing.hide()
  scene.selected=[1]
  var event = InputEventMouseButton.new()
  event.pressed=true
  event.button_index=MOUSE_BUTTON_LEFT
  event.position=scene.camera.unproject_position(Vector3(30,0,25))
- scene._unhandled_input(event)
+ click(scene,event)
  event.shift_pressed=true
  event.position=scene.camera.unproject_position(Vector3(40,0,25))
- scene._unhandled_input(event)
+ click(scene,event)
  check(scene.sim.units[0].queue.size()==1, "desktop Shift appends through scene input")
  scene.queue_button.button_pressed=true
  var touch = InputEventScreenTouch.new()
@@ -96,7 +103,7 @@ func run():
  check(scene.queue_orders and scene.sim.units[0].queue.size()==2, "mobile Queue orders toggle appends touch command")
  scene.queue_button.button_pressed=false
  event.shift_pressed=false
- scene._unhandled_input(event)
+ click(scene,event)
  check(scene.sim.units[0].queue.is_empty(), "unmodified scene input replaces queue")
  scene.queue_button.button_pressed=true
  scene._unhandled_input(touch)

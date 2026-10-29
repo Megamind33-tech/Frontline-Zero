@@ -10,7 +10,11 @@ var selection: Label
 var minimap
 var overlay
 var drive_pad: GridContainer
-var camera_pad: GridContainer
+var advanced: PanelContainer
+var building_panel: PanelContainer
+var building_label: Label
+var group_buttons: Array=[]
+var multi_button: Button
 var result_title: Label
 var begin: Button
 var role_buttons: Array=[]
@@ -55,7 +59,7 @@ func setup(controller):
  var map_box=VBoxContainer.new();map_panel.add_child(map_box)
  label(map_box,"TACTICAL MAP",11,Color("a1b396"))
  minimap=Overlay.new();minimap.minimap=true;minimap.battle=battle;minimap.custom_minimum_size=Vector2(176,110);minimap.clip_contents=true;map_box.add_child(minimap)
- context=panel(root_);context.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE);context.offset_left=234;context.offset_top=-124;context.offset_right=-206;context.offset_bottom=-14
+ context=panel(root_);context.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE);context.offset_left=234;context.offset_top=-82;context.offset_right=-16;context.offset_bottom=-14
  var context_box=VBoxContainer.new();context.add_child(context_box)
  var select_row=HBoxContainer.new();context_box.add_child(select_row)
  selection=label(select_row,"TASK FORCE  /  tap a unit or select a class",14);selection.size_flags_horizontal=Control.SIZE_EXPAND_FILL
@@ -67,42 +71,53 @@ func setup(controller):
    for u in battle.sim.units:
     if u.team==0 and u.hp>0 and u.type==r:battle.selected.append(u.id))
   role_buttons.append(b)
- var commands=HBoxContainer.new();commands.add_theme_constant_override("separation",6);context_box.add_child(commands)
+ button(select_row,"More",func():open_advanced(Vector2(context.position.x+context.size.x-320,context.position.y-220)))
+ for slot in [1,2,3]:
+  var number=slot
+  var b=button(select_row,str(slot),func():battle.recall_group(number))
+  b.custom_minimum_size.x=44;b.tooltip_text="Recall control group "+str(slot)
+  group_buttons.append(b)
+ advanced=panel(root_);advanced.custom_minimum_size=Vector2(360,0);advanced.z_index=20;advanced.hide()
+ var advanced_box=VBoxContainer.new();advanced.add_child(advanced_box)
+ label(advanced_box,"ADVANCED ORDERS  /  HOLD A SELECTED UNIT",12,Color("b7c59c"))
+ var commands=HBoxContainer.new();advanced_box.add_child(commands)
  var formation=button(commands,"Formation: Box",func():pass)
  formation.pressed.connect(func():battle.command_formation="line" if battle.command_formation=="box" else "box";formation.text="Formation: "+battle.command_formation.capitalize())
  battle.queue_button=button(commands,"Queue orders",func():pass);battle.queue_button.toggle_mode=true
- battle.queue_button.toggled.connect(func(enabled):battle.queue_orders=enabled)
- button(commands,"Hold position",func():battle.clear_direct();battle.sim.hold(battle.selected))
- drive_button=button(commands,"Direct drive",func():pass);drive_button.toggle_mode=true
- drive_button.toggled.connect(func(enabled):battle.clear_direct();drive_pad.visible=enabled and battle.selected.size()==1;camera_pad.visible=not drive_pad.visible)
- # One compact gesture/control cluster, with a contextual direct-drive pad.
- var camera_panel=panel(root_);camera_panel.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);camera_panel.offset_left=-194;camera_panel.offset_top=-188;camera_panel.offset_right=-16;camera_panel.offset_bottom=-14
- var control_box=VBoxContainer.new();camera_panel.add_child(control_box)
- label(control_box,"CAMERA / 2-FINGER DRAG",10,Color("a1b396"))
- camera_pad=GridContainer.new();camera_pad.columns=3;control_box.add_child(camera_pad)
- for item in [["↶",Vector2.ZERO],["↑",Vector2.UP],["↷",Vector2.ZERO],["←",Vector2.LEFT],["⌖",Vector2.ZERO],["→",Vector2.RIGHT],["−",Vector2.ZERO],["↓",Vector2.DOWN],["+",Vector2.ZERO]]:
-  var text_: String=item[0];var axis: Vector2=item[1]
-  var b=button(camera_pad,text_,func():
-   if text_=="+":battle.zoom_camera(-5)
-   elif text_=="−":battle.zoom_camera(5)
-   elif text_=="↶":battle.camera_yaw-=.22;battle.update_camera()
-   elif text_=="↷":battle.camera_yaw+=.22;battle.update_camera()
-   elif text_=="⌖":battle.focus_selection())
-  b.custom_minimum_size=Vector2(44,44)
-  b.button_down.connect(func():battle.camera_axes[b.get_instance_id()]=axis)
-  b.button_up.connect(func():battle.camera_axes.erase(b.get_instance_id()))
- drive_pad=GridContainer.new();drive_pad.columns=3;control_box.add_child(drive_pad);drive_pad.hide()
+ battle.queue_button.toggled.connect(func(enabled):battle.queue_orders=enabled;battle.hud.refresh())
+ button(commands,"Hold position",func():battle.clear_direct();battle.sim.hold(battle.selected);close_advanced())
+ var selection_row=HBoxContainer.new();advanced_box.add_child(selection_row)
+ multi_button=button(selection_row,"Add selection",func():pass);multi_button.toggle_mode=true
+ multi_button.toggled.connect(func(enabled):battle.additive_selection=enabled;refresh())
+ button(selection_row,"All",func():battle.select_all();refresh())
+ button(selection_row,"Clear",func():battle.clear_direct();battle.selected.clear();close_advanced())
+ var group_row=HBoxContainer.new();advanced_box.add_child(group_row)
+ label(group_row,"SAVE GROUP",12)
+ for slot in [1,2,3]:
+  var number=slot
+  button(group_row,str(slot),func():battle.save_group(number))
+ drive_button=button(advanced_box,"Direct drive",func():pass);drive_button.toggle_mode=true
+ drive_button.toggled.connect(func(enabled):battle.clear_direct();drive_pad.visible=enabled and battle.selected.size()==1)
+ drive_pad=GridContainer.new();drive_pad.columns=3;advanced_box.add_child(drive_pad);drive_pad.hide()
  for item in [["",Vector2.ZERO],["↑",Vector2.UP],["",Vector2.ZERO],["←",Vector2.LEFT],["↓",Vector2.DOWN],["→",Vector2.RIGHT]]:
   var axis: Vector2=item[1]
-  var b=button(drive_pad,item[0],func():pass);b.disabled=item[0].is_empty();b.custom_minimum_size=Vector2(44,46)
+  var b=button(drive_pad,item[0],func():pass);b.disabled=item[0].is_empty();b.custom_minimum_size=Vector2(74,46)
   b.button_down.connect(func():battle.pad_axes[b.get_instance_id()]=axis;battle.touching=true)
   b.button_up.connect(func():battle.pad_axes.erase(b.get_instance_id());battle.touching=not battle.pad_axes.is_empty())
+ button(advanced_box,"Close",close_advanced)
+ building_panel=panel(root_);building_panel.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT);building_panel.offset_left=-330;building_panel.offset_top=96;building_panel.offset_right=-16;building_panel.z_index=10;building_panel.hide()
+ var building_box=VBoxContainer.new();building_panel.add_child(building_box)
+ label(building_box,"ASTER COMMAND POST",20)
+ building_label=label(building_box,"",15)
+ button(building_box,"Vehicle workshop",func():building_panel.hide();briefing.show();workshop.show();battle.paused=true;battle.clear_direct();battle.pause_button.text="Resume")
+ button(building_box,"Mission briefing",func():building_panel.hide();briefing.show();battle.paused=true;battle.clear_direct();battle.pause_button.text="Resume")
+ button(building_box,"Close",func():building_panel.hide())
  battle.message=Label.new();battle.message.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
- root_.add_child(battle.message);battle.message.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE);battle.message.offset_left=242;battle.message.offset_top=-174;battle.message.offset_right=-185;battle.message.offset_bottom=-128
+ root_.add_child(battle.message);battle.message.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE);battle.message.offset_left=242;battle.message.offset_top=-128;battle.message.offset_right=-20;battle.message.offset_bottom=-86
  battle.message.add_theme_color_override("font_shadow_color",Color(0,0,0,.9))
  battle.message.add_theme_constant_override("shadow_offset_x",1);battle.message.add_theme_constant_override("shadow_offset_y",1)
  battle.message.add_theme_font_size_override("font_size",13);battle.message.add_theme_color_override("font_color",Color("e0d3b0"))
- battle.message.text="Tap to select / command  •  Drag to pan  •  Pinch to zoom  •  Woods absorb fire; mud slows vehicles"
+ battle.message.text="Tap units / terrain / enemy  •  Drag, pinch, rotate camera  •  Hold for orders; double-tap selects a class"
  # Deployment/customization is a modal briefing, never a permanent debug sidebar.
  briefing=panel(root_);briefing.set_anchors_and_offsets_preset(Control.PRESET_CENTER);briefing.offset_left=-270;briefing.offset_right=270;briefing.offset_top=-245;briefing.offset_bottom=225
  var brief=VBoxContainer.new();brief.add_theme_constant_override("separation",10);briefing.add_child(brief)
@@ -141,24 +156,48 @@ func refresh():
  var queued=0
  for u in living:
   if battle.selected.has(u.id):queued+=u.queue.size()+(0 if u.order.is_empty() else 1)
- selection.text=(str(count)+" SELECTED  ·  "+str(queued)+" ORDERS") if count>0 else "TASK FORCE"
- # Commands are contextual; role selectors and All remain accessible.
- var commands=context.get_child(0).get_child(1)
- commands.visible=count>0
+ selection.text=(str(count)+" SELECTED · "+str(queued)+" ORDERS"+(" · QUEUE" if battle.queue_orders else "")+(" · MULTI" if battle.additive_selection else "")) if count>0 else "TASK FORCE"
+ for i in group_buttons.size():
+  group_buttons[i].disabled=battle.control_groups.recall(i+1,s.units).is_empty()
  for i in role_buttons.size():
   var role=["scout","tank","artillery"][i]
   var amount=living.filter(func(u):return u.type==role).size()
   role_buttons[i].text=role.capitalize()+"  "+str(amount)
   role_buttons[i].disabled=amount==0
  if count!=1:
-  drive_pad.hide();camera_pad.show();drive_button.set_pressed_no_signal(false)
+  drive_pad.hide();drive_button.set_pressed_no_signal(false)
+ if building_panel.visible:building_label.text="Integrity: %d / 1600\n%s" % [maxi(0,ceili(s.hq[0].hp)),battle.campaign_text.text]
  var owners=[]
  for p in s.points:owners.append("ASTER" if p.owner==0 else "VEYR" if p.owner==1 else "NEUTRAL")
  objective.text="N  "+owners[0]+"   /   S  "+owners[1]+"     %d : %d  /120     %02d:%02d" % [s.score[0],s.score[1],int(s.time)/60,int(s.time)%60]
  overlay.queue_redraw();minimap.queue_redraw()
 func show_result(result: Dictionary):
+ close_advanced();building_panel.hide()
  result_title.text="VICTORY" if result.winner==0 else "DEFEAT" if result.winner==1 else "STALEMATE"
  begin.text="Replay battle"
  for connection in begin.pressed.get_connections():begin.pressed.disconnect(connection.callable)
  begin.pressed.connect(func():battle.reset_battle();briefing.hide();battle.paused=false;battle.pause_button.text="Pause")
  briefing.show()
+
+func blocks_world(pos: Vector2) -> bool:
+ if briefing.visible:return true
+ for child in get_child(0).get_children():
+  if child is PanelContainer and child.is_visible_in_tree() and child.get_global_rect().has_point(pos):return true
+ return false
+
+func open_advanced(pos: Vector2):
+ battle.clear_direct()
+ advanced.show()
+ var viewport=battle.get_viewport().get_visible_rect().size
+ advanced.reset_size()
+ advanced.position=pos.clamp(Vector2(12,88),viewport-advanced.size-Vector2(12,96))
+ refresh()
+
+func close_advanced():
+ battle.clear_direct();drive_pad.hide();drive_button.set_pressed_no_signal(false);advanced.hide()
+
+func open_building(id: int):
+ if id!=battle.Sim.FRIENDLY_HQ or battle.sim.hq[0].hp<=0:return
+ close_advanced()
+ building_panel.show()
+ refresh()

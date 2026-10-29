@@ -4,17 +4,18 @@ const Campaign = preload("res://src/campaign.gd")
 const Field = preload("res://src/battlefield.gd")
 const HUD = preload("res://src/battle_hud.gd")
 const Effects = preload("res://src/battle_effects.gd")
+const TouchCommands = preload("res://src/touch_commands.gd")
+const Groups = preload("res://src/control_groups.gd")
+var touch_input=TouchCommands.new()
+var control_groups=Groups.new()
+var additive_selection=false
+var order_feedback: Array=[]
 var armor_paint=ShaderMaterial.new()
 var hud
 var effects
 var camera_focus = Vector2(43,32.5)
 var camera_yaw = 0.0
 var camera_zoom = 48.0
-var camera_axes: Dictionary = {}
-var touch_points: Dictionary = {}
-var touch_start = Vector2.ZERO
-var touch_dragged = false
-var mouse_panning = false
 var frame_samples: Array = []
 var draw_samples: Array = []
 var last_frame_usec = 0
@@ -69,6 +70,7 @@ func cube(parent: Node3D, at: Vector3, size: Vector3, color: Color) -> MeshInsta
  return n
 
 func _ready():
+ touch_input.battle=self
  armor_paint.shader=load("res://src/armor.gdshader")
  for role in ["scout","tank","artillery"]:
   var path = "res://assets/battle/%s.glb" % role
@@ -158,6 +160,9 @@ func deploy():
  message.text = "Command confirmed. Capture both relays or destroy Veyr HQ."
 
 func reset_battle(candidate = null):
+ hud.close_advanced();hud.building_panel.hide()
+ touch_input.cancel()
+ order_feedback.clear()
  clear_direct()
  if is_instance_valid(map_root):
   remove_child(map_root)
@@ -212,13 +217,13 @@ func clear_direct():
  direct=Vector2.ZERO
  touching=false
  pad_axes.clear()
- camera_axes.clear()
  if sim != null:
   for u in sim.units: u.direct=Vector2.ZERO
 
 func _notification(what):
  if what==NOTIFICATION_APPLICATION_FOCUS_OUT:
   paused=true
+  touch_input.cancel()
   clear_direct()
   if is_instance_valid(pause_button): pause_button.text="Resume"
 
@@ -261,55 +266,92 @@ func world_at_screen(pos: Vector2):
   if hit==null:return null
  return Vector2(hit.x,hit.z)
 
-func dispatch_world(pos: Vector2, append_order: bool):
- if sim==null or not sim.result.is_empty():return
+func pick_screen(pos: Vector2) -> Dictionary:
  var p=world_at_screen(pos)
+ if p==null:return {}
+ var closest: Dictionary={}
+ var distance=2.3
+ for u in sim.units:
+  var d: float=u.pos.distance_to(p)
+  if u.hp>0 and d<distance:
+   distance=d;closest={"kind":"friendly_unit" if u.team==0 else "enemy_unit","id":u.id,"pos":u.pos}
+ if not closest.is_empty():return closest
+ for h in sim.hq:
+  if h.hp>0 and h.pos.distance_to(p)<3.4:
+   return {"kind":"friendly_building" if h.team==0 else "enemy_building","id":Sim.FRIENDLY_HQ if h.team==0 else Sim.ENEMY_HQ,"pos":h.pos}
+ return {"kind":"terrain","pos":p}
+
+func select_class_near(id: int):
+ var source: Dictionary={}
+ for u in sim.units:
+  if u.id==id and u.team==0 and u.hp>0:source=u
+ if source.is_empty():return
+ if not additive_selection:selected.clear()
+ for u in sim.units:
+  if u.team==0 and u.hp>0 and u.type==source.type and u.pos.distance_to(source.pos)<=25 and not selected.has(u.id):selected.append(u.id)
+ clear_direct()
+ hud.refresh()
+
+func save_group(slot: int):
+ var err=control_groups.assign(slot,selected,sim.units)
+ message.text="Group "+str(slot)+" saved" if err==OK else "Group could not be saved"
+ hud.refresh()
+
+func recall_group(slot: int):
+ var ids=control_groups.recall(slot,sim.units)
+ if ids.is_empty():message.text="Group "+str(slot)+" has no living matching units";return
+ clear_direct();selected=ids;hud.refresh()
+
+func feedback(pos: Vector2,kind: String):
+ if pos.is_finite():
+  if order_feedback.size()>=12:order_feedback.pop_front()
+  order_feedback.append({"pos":pos,"kind":kind,"age":0.})
+  hud.overlay.queue_redraw()
+
+func dispatch_tap(hit: Dictionary,screen: Vector2,append_order: bool,double_tap: bool = false):
+ if hit.is_empty() or sim==null or not sim.result.is_empty():return
+ var kind: String=hit.kind
+ if kind=="friendly_unit":
+  var alive=sim.units.any(func(u):return u.id==hit.id and u.team==0 and u.hp>0)
+  if not alive:message.text="Unit no longer available";return
+  if double_tap:select_class_near(hit.id)
+  else:
+   clear_direct()
+   if additive_selection:
+    if selected.has(hit.id):selected.erase(hit.id)
+    else:selected.append(hit.id)
+   else:selected=[hit.id]
+  hud.refresh()
+  return
+ if kind=="friendly_building":
+  hud.open_building(hit.id)
+  return
+ var target_id: int=hit.id if kind in ["enemy_unit","enemy_building"] else -1
+ var p=hit.pos if target_id!=-1 else world_at_screen(screen)
  if p==null:return
- for u in sim.units:
-  if u.hp>0 and u.team==0 and u.pos.distance_to(p)<2.3:
-   clear_direct();selected=[u.id]
-   return
- var target_id=-1
- for u in sim.units:
-  if u.hp>0 and u.team==1 and u.pos.distance_to(p)<2.3:target_id=u.id
  if not sim.command(selected,p,target_id,command_formation,append_order):
-  message.text="Order rejected: choose living units / queue limit 16."
+  message.text="Order unavailable: invalid target, outside map, or queue full"
+  feedback(p,"reject")
  else:
-  message.text=("Queued waypoint" if append_order else "Focus fire" if target_id>=0 else "Move confirmed")+"  /  "+str(selected.size())+" units"
+  var label_="Attack confirmed" if target_id!=-1 else "Waypoint queued" if append_order else "Move confirmed"
+  message.text=label_+"  /  "+str(selected.size())+" units"
+  feedback(p,"attack" if target_id!=-1 else "move")
+ hud.refresh()
+
+func _input(event):
+ if sim!=null and touch_input.handle(event):get_viewport().set_input_as_handled()
 
 func _unhandled_input(event):
  if event is InputEventKey and event.pressed and not event.echo:
   if event.keycode==KEY_F3:hud.developer.visible=not hud.developer.visible
   elif event.keycode==KEY_Q:camera_yaw-=.15;update_camera()
   elif event.keycode==KEY_E:camera_yaw+=.15;update_camera()
-  elif event.keycode==KEY_ESCAPE:hud.briefing.visible=not hud.briefing.visible;paused=true;clear_direct()
- if event is InputEventMouseButton:
-  if event.button_index in [MOUSE_BUTTON_RIGHT,MOUSE_BUTTON_MIDDLE]:mouse_panning=event.pressed
-  elif event.pressed and event.button_index==MOUSE_BUTTON_WHEEL_UP:zoom_camera(-3)
-  elif event.pressed and event.button_index==MOUSE_BUTTON_WHEEL_DOWN:zoom_camera(3)
-  elif event.pressed and event.button_index==MOUSE_BUTTON_LEFT:dispatch_world(event.position,queue_orders or event.shift_pressed)
- elif event is InputEventMouseMotion and mouse_panning:pan_camera(event.relative)
- elif event is InputEventScreenTouch:
-  if event.pressed:
-   touch_points[event.index]=event.position
-   if touch_points.size()==1:touch_start=event.position;touch_dragged=false
-   else:touch_dragged=true
-  else:
-   if touch_points.size()==1 and not touch_dragged:dispatch_world(event.position,queue_orders)
-   touch_points.erase(event.index)
- elif event is InputEventScreenDrag and touch_points.has(event.index):
-  if touch_points.size()==2:
-   var values=touch_points.values()
-   var old_distance: float=values[0].distance_to(values[1])
-   touch_points[event.index]=event.position
-   values=touch_points.values()
-   var new_distance: float=values[0].distance_to(values[1])
-   if old_distance>5 and new_distance>5:zoom_camera(camera_zoom*(1.-new_distance/old_distance))
-   pan_camera(event.relative*.5)
-   touch_dragged=true
-  elif event.position.distance_to(touch_start)>10 or touch_dragged:
-   pan_camera(event.relative);touch_dragged=true
-  touch_points[event.index]=event.position
+  elif event.keycode==KEY_ESCAPE:hud.briefing.visible=not hud.briefing.visible;paused=true;touch_input.cancel();clear_direct()
+  elif event.keycode in [KEY_1,KEY_2,KEY_3]:
+   var slot=event.keycode-KEY_1+1
+   if event.ctrl_pressed:save_group(slot)
+   else:recall_group(slot)
+ else:touch_input.handle(event)
 
 func _physics_process(dt):
  if sim==null or paused or not sim.result.is_empty(): return
@@ -348,10 +390,9 @@ func _process(dt):
  last_frame_usec=now
  peak_memory=maxf(peak_memory,Performance.get_monitor(Performance.MEMORY_STATIC))
  peak_video_memory=maxf(peak_video_memory,Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED))
- var pan=Vector2.ZERO
- for axis in camera_axes.values():pan+=axis
- if pan!=Vector2.ZERO:
-  pan_camera(-pan*dt*240)
+ touch_input.advance(Time.get_ticks_msec())
+ for item in order_feedback:item.age+=dt
+ order_feedback=order_feedback.filter(func(item):return item.age<1.)
  update_visuals(dt)
  hud_elapsed+=dt
  if hud_elapsed>.1:

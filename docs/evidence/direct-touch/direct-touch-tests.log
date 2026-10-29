@@ -1,0 +1,39 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+PASS: single ground move remains responsive
+PASS: multi-unit move preserves distinct formation slots
+PASS: attack order follows a moving hostile instead of a stale point
+PASS: single attack holds valid range and fires
+PASS: explicit focus wins over a nearer automatic target
+PASS: multi-unit enemy-structure focus is accepted
+PASS: multiple units attack enemy HQ before nearby units
+PASS: artillery retreats from minimum range instead of firing illegally
+PASS: target death advances existing command queue
+PASS: friendly structures/units and unknown targets cannot be attacked
+PASS: rejected attacks do not erase existing orders
+PASS: off-map and nonfinite destinations fail without clamping to a surprise order
+PASS: ground command adapter rejects unsupported movement domains
+PASS: engine-dispatched touchscreen tap selects a friendly unit
+PASS: pointer down does not issue an order before tap/drag classification
+PASS: engine-dispatched terrain tap moves and confirms immediately
+PASS: optional additive taps preserve multi-unit selection
+PASS: engine-dispatched enemy tap dispatches multi-unit focus fire and visual confirmation
+PASS: engine-dispatched enemy-building tap attacks the structure
+PASS: friendly building opens real management without an attack or move
+PASS: double-tap selects nearby living units of the same class
+PASS: long press on selected unit exposes advanced orders
+PASS: long press release cannot issue a movement command
+PASS: main HUD has no permanent Move/Attack or directional camera controls
+PASS: single-finger camera pan never issues an order
+PASS: pinch and two-finger rotation preserve orders
+PASS: HUD-started drag cannot become a battlefield gesture
+PASS: crossing the HUD boundary in either direction cannot issue an order
+PASS: a moving friendly remains selectable from the pressed target
+PASS: target destroyed during a tap rejects gracefully without a ground order
+PASS: emulated mouse activates HUD buttons without battlefield orders
+PASS: emulated mouse cannot duplicate a native world command
+PASS: saved control group recalls selection
+PASS: control group assignments survive reload
+PASS: group recall filters destroyed units
+PASS: group identities cannot select a different blueprint after redeployment
+TOTAL: 36 direct-touch checks, 0 failed

@@ -38,10 +38,10 @@ func run():
   model.queue_free()
  scene.selected=[1]
  scene.hud.refresh()
- check(scene.hud.context.get_child(0).get_child(1).visible,"commands appear for selected units")
+ check(not scene.hud.advanced.visible,"ordinary tap commands do not require a permanent order panel")
  scene.selected=[]
  scene.hud.refresh()
- check(not scene.hud.context.get_child(0).get_child(1).visible,"commands hide with no selection")
+ check(not scene.hud.advanced.visible,"advanced commands remain hidden without explicit interaction")
  var old=scene.camera.position
  scene.pan_camera(Vector2(80,20))
  check(scene.camera.position.distance_to(old)>1,"camera drag moves the actual 3D view")

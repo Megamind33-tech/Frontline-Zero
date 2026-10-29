@@ -24,13 +24,13 @@ def descendants(pid):
 with log.open('w') as stream:
  process=subprocess.Popen(command,stdout=stream,stderr=subprocess.STDOUT,env=env)
  while process.poll() is None:
-  for pid in descendants(process.pid):
-   try:
-    if 'godot' not in pathlib.Path(f'/proc/{pid}/comm').read_text().lower():continue
-    status=pathlib.Path(f'/proc/{pid}/status').read_text()
-    match=re.search(r'^VmHWM:\s+(\d+) kB',status,re.M)
-    if match:peak_kb=max(peak_kb,int(match.group(1)))
-   except OSError:pass
+  # ps can read kernel RSS even when the managed host hides /proc task children.
+  try:
+   lines=subprocess.check_output(['ps','-C','godot','-o','rss=,args='],text=True).splitlines()
+   for line in lines:
+    columns=line.strip().split(None,1)
+    if len(columns)==2 and 'tests/battle_capture.gd' in columns[1]:peak_kb=max(peak_kb,int(columns[0]))
+  except (subprocess.CalledProcessError,ValueError):pass
   time.sleep(.5)
  if process.returncode:raise SystemExit(f'Render failed ({process.returncode}); inspect {log}')
 text=log.read_text()
@@ -38,7 +38,7 @@ if re.search(r'SCRIPT ERROR:|^ERROR:',text,re.M):raise SystemExit(f'Render error
 report=root/'dist'/('IRON_CROSSING-host-performance.json' if options.benchmark else 'IRON_CROSSING-movie-evidence.json')
 data=json.loads(report.read_text())
 data['process_rss_peak_mib']=peak_kb/1024 if peak_kb else None
-data['rss_sampling']='external /proc process-tree sampling at 0.5 s; Godot process VmHWM'
+data['rss_sampling']='ps RSS samples every 0.5 s for the battle_capture.gd Godot process; maximum observed, not total system RAM'
 data['host_elapsed_seconds']=round(time.monotonic()-started,3)
 report.write_text(json.dumps(data,indent=2)+'\n')
 print(json.dumps(data,indent=2))

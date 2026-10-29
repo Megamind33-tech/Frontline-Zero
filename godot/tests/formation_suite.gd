@@ -18,6 +18,12 @@ func inside(slots: Array[Vector2]) -> bool:
  for p in slots:
   if not p.is_finite() or p.x<1.499 or p.x>98.501 or p.y<1.499 or p.y>63.501: return false
  return true
+func click(scene,event):
+ event.pressed=true
+ scene._unhandled_input(event)
+ event.pressed=false
+ scene._unhandled_input(event)
+ event.pressed=true
 func _initialize():
  call_deferred("run")
 func run():
@@ -69,6 +75,7 @@ func run():
  var scene=load("res://main.tscn").instantiate()
  root.add_child(scene)
  await process_frame
+ scene.hud.briefing.hide()
  var formation_button: Button
  for b in scene.find_children("*","Button",true,false):
   if b.text=="Formation: Box": formation_button=b
@@ -81,7 +88,7 @@ func run():
   event.pressed=true
   event.button_index=MOUSE_BUTTON_LEFT
   event.position=scene.camera.unproject_position(Vector3(35,0,30))
-  scene._unhandled_input(event)
+  click(scene,event)
   var dispatch_ok=true
   for u in scene.sim.units:
    if scene.selected.has(u.id): dispatch_ok=dispatch_ok and not u.order.is_empty()

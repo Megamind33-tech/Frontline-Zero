@@ -58,6 +58,26 @@ func _draw():
     draw_circle(target,5,Color(.77,.85,.58,.85),false,1.4,true)
     if orders.size()>1:draw_string(font,target+Vector2(7,3),str(i+1),HORIZONTAL_ALIGNMENT_LEFT,-1,12,color)
     previous=target
+ for item in battle.order_feedback:
+  var pos=project(item.pos,.5)
+  var color=ENEMY if item.kind=="attack" else Color("e27c64") if item.kind=="reject" else FRIEND
+  color.a=1.-item.age
+  var radius=12.+item.age*16.
+  draw_circle(pos,radius,color,false,2,true)
+  if item.kind=="attack":
+   draw_line(pos-Vector2(7,0),pos+Vector2(7,0),color,2,true)
+   draw_line(pos-Vector2(0,7),pos+Vector2(0,7),color,2,true)
+  elif item.kind=="reject":draw_string(font,pos+Vector2(-4,5),"×",HORIZONTAL_ALIGNMENT_LEFT,-1,20,color)
+  else:draw_circle(pos,3,color)
+ var targets: Array=[]
+ for u in sim.units:
+  if battle.selected.has(u.id) and not u.order.is_empty():
+   var target=sim.attack_target(u.order.get("target_id",-1))
+   if not target.is_empty() and not targets.has(target.pos):
+    targets.append(target.pos)
+    var pos=project(target.pos,1.4)
+    draw_circle(pos,15,ENEMY,false,1.6,true)
+    draw_string(font,pos+Vector2(18,4),"FOCUS",HORIZONTAL_ALIGNMENT_LEFT,-1,11,ENEMY)
  # Unit roles and objective names use terrain-projected anchors, not debug IDs.
  for i in sim.points.size():
   var p=project(sim.points[i].pos,5.8)
