@@ -3,7 +3,7 @@
 | Component | Version/source | Status |
 |---|---|---|
 | Godot standard Linux x86_64 | 4.7.2, official godotengine/godot-builds release | Downloaded, SHA512 verified, executable |
-| Blender asset builder | 5.2.3 Linux x64, download.blender.org/release/Blender5.2 | Downloaded, SHA256 verified, startup crash; blocked |
+| Blender asset builder | 5.2.3 Linux x64, download.blender.org/release/Blender5.2 | SHA256 verified. `blender --version` and `scripts/build_assets.py` run on the Cloud Agent image |
 | Asset builder fallback | godot/tests/build_assets.gd | Executed, three reusable vehicle scenes |
 | Animation system | Godot AnimationPlayer, original recoil tracks | Included in each generated scene |
 | Gameplay/AI/persistence | Original GDScript, Godot built-in APIs | Headless tests executed |

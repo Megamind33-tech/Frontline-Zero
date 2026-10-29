@@ -8,3 +8,6 @@ Before stopping, record the next task and blockers. Keep user reports under 150 
 Canonical runtime: Godot 4.7.2, fully 3D scenes, Compatibility renderer. The JavaScript/Canvas build is an experimental reference only.
 Commands: GODOT_BIN=/path/to/godot bash scripts/verify.sh; bash scripts/android-build.sh.
 Preserve vendored license notices and pinned provenance in godot/third_party. Do not import BAR art or GPL source into this project without an explicit licensing decision.
+
+## Cursor Cloud specific instructions
+Node 22, curl, unzip, and ripgrep are already on the image. No npm packages. From the repo root, `bash scripts/install-cloud-tools.sh` installs pinned Godot 4.7.2 at gitignored `.tools/godot` and pinned Blender 5.2.3 at `/usr/local/bin/blender`. It also enables Node Wrangler and Rigify, and installs the official extensions for modeling, Grease Pencil drawing, storyboards, terrain and trees, Godot collision export, and mesh checks. The script is safe to repeat. Extension archives stay in the Blender user config, not in this repository. Prove the slice with `bash scripts/verify.sh`. Prove Blender with `blender --background --python scripts/build_assets.py -- dist/blender-assets`. Do not retry Android export templates or the Playwright browser install; those stops are in docs/STATUS.md.
