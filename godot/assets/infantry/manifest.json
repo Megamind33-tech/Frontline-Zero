@@ -1,0 +1,23 @@
+{
+  "id": "INF-001",
+  "author": "FRONTLINE ZERO procedural pipeline",
+  "license": "CC0-1.0",
+  "source": "scripts/build_infantry.py",
+  "height_m": 1.78,
+  "lod0_triangles": 3102,
+  "animations": [
+    "Idle",
+    "Walk",
+    "Run",
+    "Crouch",
+    "Aim",
+    "Fire",
+    "Reload",
+    "TakeCover",
+    "EnterVehicle",
+    "ExitVehicle",
+    "Interact",
+    "Hit",
+    "Incapacitation"
+  ]
+}

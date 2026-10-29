@@ -1,0 +1,8 @@
+Godot import: 43 infantry checks, 0 failed
+INF001_TRIS 6812
+HEIGHT 1.79497611522675
+Animations imported: Aim, Crouch, EnterVehicle, ExitVehicle, Fire, Hit, Idle, Incapacitation, Interact, Reload, Run, TakeCover, Walk
+Blender reported INF001_TRIS 3102 before Godot face triangulation (6812 triangles).
+
+Visual quality gates: NOT PASSED.
+Front and three-quarter renders show a low-poly procedural figure: floating head, torn vest, tube limbs, mitten hands and a simplified rifle. Do not approve INF-001. Do not generate INF-002 through INF-012 from this mesh.

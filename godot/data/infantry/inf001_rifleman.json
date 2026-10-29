@@ -1,0 +1,33 @@
+{
+  "id": "INF-001",
+  "name": "Rifleman",
+  "faction": "Aster",
+  "height_m": 1.78,
+  "lod_triangle_budget": {"lod0": 20000, "lod1": 8000, "lod2": 3000},
+  "stats": {
+    "health": 100,
+    "armour": 8,
+    "attack_damage": 12,
+    "attack_interval_s": 0.7,
+    "accuracy": 0.62,
+    "range_m": 28,
+    "move_speed_m_s": 4.6,
+    "cover_damage_taken": 0.55,
+    "morale": 70,
+    "experience": 0,
+    "upgrade_level": 1,
+    "ammunition": 30,
+    "resupply_rounds": 10
+  },
+  "variants": {
+    "recruit": {"upgrade_level": 1, "armour": 8, "morale": 70, "accuracy": 0.62, "show": ["Helmet", "Shirt", "Trousers", "Vest", "Belt", "MagPouches", "Gloves", "Boots", "Rifle", "Sling", "InsigniaRecruit"]},
+    "trained": {"upgrade_level": 2, "armour": 14, "morale": 78, "accuracy": 0.68, "show_extra": ["VestInserts", "UtilityPouch"]},
+    "veteran": {"upgrade_level": 3, "armour": 18, "morale": 86, "accuracy": 0.74, "attack_damage": 14, "show_extra": ["KneePads", "ElbowPads", "Radio", "Antenna", "InsigniaVeteran"]},
+    "elite": {"upgrade_level": 4, "armour": 24, "morale": 92, "accuracy": 0.8, "move_speed_m_s": 4.8, "show_extra": ["HelmetCover", "Backpack", "InsigniaElite"]},
+    "legendary": {"upgrade_level": 5, "armour": 28, "morale": 98, "accuracy": 0.86, "attack_damage": 16, "attack_interval_s": 0.62, "show_extra": ["Pauldron", "InsigniaLegendary"]}
+  },
+  "damage_states": ["intact", "light", "heavy", "incapacitated"],
+  "animations": ["Idle", "Walk", "Run", "Crouch", "Aim", "Fire", "Reload", "TakeCover", "EnterVehicle", "ExitVehicle", "Interact", "Hit", "Incapacitation"],
+  "attachments": ["Hand_R", "Hand_L", "Muzzle", "Sling"],
+  "source": "scripts/build_infantry.py"
+}
