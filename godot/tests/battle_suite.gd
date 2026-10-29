@@ -70,6 +70,14 @@ func run():
  scene.sim.units[0].hp=0
  scene.update_visuals(.033)
  check(scene.visuals[1].dead and not scene.visuals[1].ring.visible,"destroyed vehicles become wrecks and lose selection markers")
+ scene.sim.supply[0]=Sim.FACTORY_COST
+ check(scene.sim.construct(0),"player can order a vehicle factory from the simulation")
+ scene.sync_factories()
+ check(scene.building_visuals.has(-20) and scene.building_visuals[-20].visible,"factory construction has a visible structure")
+ scene.hud.open_building(-20)
+ check(scene.hud.panel_mode=="factory" and scene.hud.building_panel.visible and scene.hud.produce_row.visible,"tapping the factory opens production")
+ scene.hud.open_building(Sim.FRIENDLY_HQ)
+ check(scene.hud.panel_mode=="hq" and scene.hud.build_factory.visible,"command post exposes factory construction")
  scene.queue_free()
  await process_frame
  print("TOTAL: %d battle checks, %d failed" % [checks,failures])

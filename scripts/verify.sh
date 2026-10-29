@@ -18,6 +18,7 @@ run formation-tests.log "$FZ_GODOT" --headless --path godot --script tests/forma
 run queue-tests.log "$FZ_GODOT" --headless --path godot --script tests/queue_suite.gd
 run battle-tests.log "$FZ_GODOT" --headless --path godot --script tests/battle_suite.gd
 run direct-touch-tests.log "$FZ_GODOT" --headless --path godot --script tests/touch_suite.gd
+run production-tests.log "$FZ_GODOT" --headless --path godot --script tests/production_suite.gd
 run godot-smoke.log "$FZ_GODOT" --headless --path godot --quit-after 90
 npm run verify >dist/verify.log 2>&1
 cat dist/verify.log

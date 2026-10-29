@@ -20,6 +20,13 @@ var begin: Button
 var role_buttons: Array=[]
 var drive_button: Button
 var theme_=Theme.new()
+var panel_title: Label
+var panel_mode: String="hq"
+var build_factory: Button
+var workshop_button: Button
+var briefing_button: Button
+var produce_row: HBoxContainer
+var warning: Label
 
 func style(color: Color, border: Color = Color("455349")) -> StyleBoxFlat:
  var s=StyleBoxFlat.new()
@@ -50,7 +57,8 @@ func setup(controller):
  label(brand,"IRON CROSSING  /  ASTER TASK FORCE",11,Color("94a78f"))
  var mission=VBoxContainer.new();mission.size_flags_horizontal=Control.SIZE_EXPAND_FILL;row.add_child(mission)
  label(mission,"SECURE THE RELAYS  /  BREAK THE ENEMY HQ",12,Color("c6c9ab"))
- objective=label(mission,"NORTH  ○   SOUTH  ○                                      00:00",18)
+ objective=label(mission,"SUPPLY 0    NORTH  ○   SOUTH  ○    00:00",18)
+ warning=label(mission,"",13,Color("e2c07a"))
  battle.pause_button=button(row,"Resume",func():
   battle.paused=not battle.paused;battle.pause_button.text="Resume" if battle.paused else "Pause";battle.clear_direct())
  button(row,"Menu",func():briefing.visible=not briefing.visible;battle.paused=true;battle.clear_direct();battle.pause_button.text="Resume")
@@ -107,12 +115,22 @@ func setup(controller):
  button(advanced_box,"Close",close_advanced)
  building_panel=panel(root_);building_panel.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT);building_panel.offset_left=-330;building_panel.offset_top=96;building_panel.offset_right=-16;building_panel.z_index=10;building_panel.hide()
  var building_box=VBoxContainer.new();building_panel.add_child(building_box)
- label(building_box,"ASTER COMMAND POST",20)
+ panel_title=label(building_box,"ASTER COMMAND POST",20)
  building_label=label(building_box,"",15)
  building_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
  building_label.custom_minimum_size.x=270
- button(building_box,"Vehicle workshop",func():building_panel.hide();briefing.show();workshop.show();battle.paused=true;battle.clear_direct();battle.pause_button.text="Resume")
- button(building_box,"Mission briefing",func():building_panel.hide();briefing.show();battle.paused=true;battle.clear_direct();battle.pause_button.text="Resume")
+ build_factory=button(building_box,"Build vehicle factory",func():
+  if battle.sim.construct(0):battle.message.text=battle.sim.warning
+  else:battle.message.text=battle.sim.warning
+  refresh())
+ workshop_button=button(building_box,"Vehicle workshop",func():building_panel.hide();briefing.show();workshop.show();battle.paused=true;battle.clear_direct();battle.pause_button.text="Resume")
+ briefing_button=button(building_box,"Mission briefing",func():building_panel.hide();briefing.show();battle.paused=true;battle.clear_direct();battle.pause_button.text="Resume")
+ produce_row=HBoxContainer.new();building_box.add_child(produce_row);produce_row.hide()
+ for role in ["scout","tank","artillery"]:
+  var kind=role
+  button(produce_row,role.capitalize(),func():
+   battle.message.text=battle.sim.warning if not battle.sim.enqueue(0,kind) else battle.sim.warning
+   refresh())
  button(building_box,"Close",func():building_panel.hide())
  battle.message=Label.new();battle.message.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
  root_.add_child(battle.message);battle.message.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE);battle.message.offset_left=242;battle.message.offset_top=-128;battle.message.offset_right=-20;battle.message.offset_bottom=-86
@@ -125,7 +143,7 @@ func setup(controller):
  var brief=VBoxContainer.new();brief.add_theme_constant_override("separation",10);briefing.add_child(brief)
  label(brief,"OPERATION  /  04",12,Color("a2b68a"))
  result_title=label(brief,"IRON CROSSING",32)
- var desc=label(brief,"Two woodland relays. One broken supply road.\nCapture 120 relay-seconds or destroy the Veyr HQ.\nWoods reduce incoming damage; crossing mud costs speed.",16);desc.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+ var desc=label(brief,"Two woodland relays feed supply. Build a vehicle factory at the command post and replace losses.\nCapture 120 relay-seconds, destroy the Veyr HQ, or eliminate a force that cannot rebuild.\nWoods reduce incoming damage; crossing mud costs speed. Fifteen minutes.",16);desc.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
  battle.campaign_text=label(brief,"",13,Color("a2b68a"))
  begin=button(brief,"Begin battle",func():briefing.hide();battle.paused=false;battle.pause_button.text="Pause")
  var choices=HBoxContainer.new();brief.add_child(choices)
@@ -168,10 +186,35 @@ func refresh():
   role_buttons[i].disabled=amount==0
  if count!=1:
   drive_pad.hide();drive_button.set_pressed_no_signal(false)
- if building_panel.visible:building_label.text="Integrity: %d / 1600\n%s" % [maxi(0,ceili(s.hq[0].hp)),battle.campaign_text.text]
  var owners=[]
  for p in s.points:owners.append("ASTER" if p.owner==0 else "VEYR" if p.owner==1 else "NEUTRAL")
- objective.text="N  "+owners[0]+"   /   S  "+owners[1]+"     %d : %d  /120     %02d:%02d" % [s.score[0],s.score[1],int(s.time)/60,int(s.time)%60]
+ objective.text="SUPPLY %d    N %s / S %s    %d:%d /120    %02d:%02d" % [int(s.supply[0]),owners[0],owners[1],s.score[0],s.score[1],int(s.time)/60,int(s.time)%60]
+ warning.text=s.warning
+ var yard=s.building_for(0)
+ var factory_open=panel_mode=="factory"
+ panel_title.text="VEHICLE FACTORY" if factory_open else "ASTER COMMAND POST"
+ build_factory.visible=not factory_open
+ workshop_button.visible=not factory_open
+ briefing_button.visible=not factory_open
+ produce_row.visible=factory_open
+ if factory_open and not yard.is_empty():
+  var line="Integrity %d / %d" % [maxi(0,ceili(yard.hp)),int(s.FACTORY_HP)]
+  if not yard.complete:line+="\nConstruction %d%%" % int(yard.progress/s.FACTORY_SECONDS*100.0)
+  else:
+   line+="\nQueue"
+   if yard.queue.is_empty():line+=" empty"
+   for job in yard.queue:line+="\n%s  %ds" % [job.role.capitalize(),ceili(job.remaining)]
+  building_label.text=line+"\nSupply %d" % int(s.supply[0])
+ elif not factory_open:
+  building_label.text="Integrity: %d / 1600\nSupply %d\n%s" % [maxi(0,ceili(s.hq[0].hp)),int(s.supply[0]),battle.campaign_text.text]
+  build_factory.text="Build factory  %d supply" % int(s.FACTORY_COST)
+  build_factory.disabled=not yard.is_empty() or s.supply[0]<s.FACTORY_COST or s.hq[0].hp<=0
+ for child in produce_row.get_children():
+  if child is Button:
+   var role=child.text.split(" ")[0].to_lower()
+   var cost=int(s.blueprint(s.PRESETS[role]).cost)
+   child.text="%s  %d" % [role.capitalize(),cost]
+   child.disabled=yard.is_empty() or not yard.complete or s.supply[0]<cost
  overlay.queue_redraw();minimap.queue_redraw()
 func show_result(result: Dictionary):
  close_advanced();building_panel.hide()
@@ -199,7 +242,10 @@ func close_advanced():
  battle.clear_direct();drive_pad.hide();drive_button.set_pressed_no_signal(false);advanced.hide()
 
 func open_building(id: int):
- if id!=battle.Sim.FRIENDLY_HQ or battle.sim.hq[0].hp<=0:return
+ var yard=battle.sim.building_for(0)
+ if id==battle.Sim.FRIENDLY_HQ and battle.sim.hq[0].hp>0:panel_mode="hq"
+ elif not yard.is_empty() and id==yard.id and yard.hp>0:panel_mode="factory"
+ else:return
  close_advanced()
  building_panel.show()
  refresh()

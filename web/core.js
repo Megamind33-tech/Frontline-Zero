@@ -41,7 +41,7 @@ class Battle{
   }
   for(const p of this.points){const near=[0,1].map(t=>this.units.some(u=>u.hp>0&&u.team===t&&distance(u,p)<65));if(near[0]!==near[1])p.progress=Math.max(-6,Math.min(6,p.progress+(near[0]?dt:-dt)));if(p.progress===6)p.owner=0;else if(p.progress===-6)p.owner=1;else if(Math.abs(p.progress)<.05)p.owner=-1;if(p.owner>=0&&!near[1-p.owner])this.score[p.owner]+=dt;}
   for(let t=0;t<2;t++){if(this.hq[1-t].hp<=0||!this.units.some(u=>u.team===1-t&&u.hp>0)||this.score[t]>=120){this.result={winner:t,reason:this.hq[1-t].hp<=0?'headquarters destroyed':this.score[t]>=120?'territory secured':'army eliminated',seconds:Math.round(this.time)};break;}}
-  if(!this.result&&this.time>=360)this.result={winner:this.score[0]===this.score[1]?-1:this.score[0]>this.score[1]?0:1,reason:'time limit',seconds:360};
+  if(!this.result&&this.time>=900)this.result={winner:this.score[0]===this.score[1]?-1:this.score[0]>this.score[1]?0:1,reason:'time limit',seconds:900};
  }
 }
 function readCampaign(storage){try{const s=JSON.parse(storage.getItem('fz-campaign-v1'));if(s&&s.version===1&&Number.isInteger(s.wins)&&s.wins>=0&&Number.isInteger(s.losses)&&s.losses>=0&&Array.isArray(s.history)&&s.history.length<=20)return s;}catch{}return {version:1,wins:0,losses:0,territory:'contested',history:[]};}

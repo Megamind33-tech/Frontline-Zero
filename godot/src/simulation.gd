@@ -20,6 +20,20 @@ var time = 0.0
 var result: Dictionary = {}
 var shots: Array = []
 var error = ""
+const MATCH_SECONDS = 900.0
+const FACTORY_COST = 220.0
+const FACTORY_SECONDS = 20.0
+const FACTORY_HP = 900.0
+const SUPPLY_CAP = 800.0
+const UNIT_CAP = 12
+const QUEUE_CAP = 4
+const INCOME_HQ = 4.0
+const INCOME_RELAY = 6.0
+const PADS = [Vector2(16, 48), Vector2(84, 48)]
+const PRODUCE_SECONDS = {"scout": 12.0, "tank": 22.0, "artillery": 28.0}
+var supply: Array = [0.0, 0.0]
+var buildings: Array = []
+var warning = ""
 
 static func blueprint(b: Dictionary) -> Dictionary:
  if not CHASSIS.has(b.get("chassis")) or not WEAPONS.has(b.get("weapon")) or not ARMOR.has(b.get("armor")):
@@ -52,6 +66,9 @@ func _init(loadout: Array = ["tank","tank","scout","scout","artillery"], custom:
  var enemy = ["tank","tank","scout","scout","artillery"]
  for i in enemy.size():
   spawn(1, blueprint(PRESETS[enemy[i]]), Vector2(87, 17.5+i*6.5))
+ for u in units:
+  if u.team == 1:
+   u.roster = true
 
 func spawn(team: int, b: Dictionary, pos: Vector2):
  var u = b.duplicate(true)
@@ -116,9 +133,96 @@ func advance_order(u: Dictionary):
 
 func attack_target(id: int) -> Dictionary:
  if id==ENEMY_HQ:return hq[1] if hq[1].hp>0 else {}
+ for b in buildings:
+  if b.id==id and b.team==1 and b.hp>0 and b.complete:return b
  for u in units:
   if u.id==id and u.team==1 and u.hp>0:return u
  return {}
+
+func building_for(team: int) -> Dictionary:
+ for b in buildings:
+  if b.team==team and b.hp>0:return b
+ return {}
+
+func living_count(team: int) -> int:
+ var n=0
+ for u in units:
+  if u.team==team and u.hp>0:n+=1
+ return n
+
+func reinforcing(team: int) -> bool:
+ var b=building_for(team)
+ return not b.is_empty() and (not b.complete or not b.queue.is_empty())
+
+func construct(team: int) -> bool:
+ if team<0 or team>1 or not result.is_empty() or not error.is_empty() or hq[team].hp<=0:
+  return false
+ if not building_for(team).is_empty():
+  if team==0:warning="Vehicle factory already built"
+  return false
+ if supply[team]<FACTORY_COST:
+  if team==0:warning="Need %d supply for a vehicle factory" % int(FACTORY_COST)
+  return false
+ supply[team]-=FACTORY_COST
+ buildings.append({"id":-20-team,"team":team,"kind":"factory","pos":PADS[team],"hp":FACTORY_HP,"max_hp":FACTORY_HP,"progress":0.0,"complete":false,"queue":[]})
+ if team==0:warning="Vehicle factory under construction"
+ return true
+
+func enqueue(team: int, role: String) -> bool:
+ if not PRODUCE_SECONDS.has(role) or not result.is_empty() or not error.is_empty():return false
+ var b=building_for(team)
+ if b.is_empty() or not b.complete:
+  if team==0:warning="Vehicle factory is not ready"
+  return false
+ if living_count(team)+b.queue.size()>=UNIT_CAP or b.queue.size()>=QUEUE_CAP:
+  if team==0:warning="Production queue is full"
+  return false
+ var cost=float(blueprint(PRESETS[role]).cost)
+ if supply[team]<cost:
+  if team==0:warning="Need %d supply to build a %s" % [int(cost), role]
+  return false
+ supply[team]-=cost
+ b.queue.append({"role":role,"remaining":PRODUCE_SECONDS[role]})
+ if team==0:warning="%s queued" % role.capitalize()
+ return true
+
+func logistics(dt: float):
+ for team in 2:
+  if hq[team].hp<=0:continue
+  var rate=INCOME_HQ
+  for p in points:
+   if p.owner==team:rate+=INCOME_RELAY
+  supply[team]=minf(SUPPLY_CAP, supply[team]+rate*dt)
+ for b in buildings:
+  if b.hp<=0:continue
+  if not b.complete:
+   b.progress+=dt
+   if b.progress>=FACTORY_SECONDS:
+    b.complete=true
+    b.progress=FACTORY_SECONDS
+   continue
+  if b.queue.is_empty():continue
+  b.queue[0].remaining-=dt
+  if b.queue[0].remaining>0:continue
+  var role: String=b.queue[0].role
+  b.queue.pop_front()
+  if living_count(b.team)>=UNIT_CAP:continue
+  var slide=Vector2(0, 7 if b.team==0 else -7)
+  spawn(b.team, blueprint(PRESETS[role]), (b.pos+slide).clamp(Vector2(1.5,1.5),Vector2(98.5,63.5)))
+ if hq[1].hp<=0:return
+ var yard=building_for(1)
+ if yard.is_empty():
+  if supply[1]>=FACTORY_COST:construct(1)
+  return
+ if not yard.complete or living_count(1)+yard.queue.size()>=8 or yard.queue.size()>=2:return
+ var tanks=0
+ var guns=0
+ for u in units:
+  if u.team!=0 or u.hp<=0:continue
+  if u.type=="tank":tanks+=1
+  elif u.type=="artillery":guns+=1
+ var role="artillery" if tanks>=3 else "scout" if guns>=1 else "tank"
+ enqueue(1, role)
 
 func steer_attack(u: Dictionary):
  if u.order.is_empty() or u.order.get("target_id",-1)==-1:return
@@ -144,6 +248,7 @@ func tick(dt: float = STEP):
   return
  assert(dt > 0 and dt <= 0.1)
  time += dt
+ logistics(dt)
  shots.clear()
  for u in units:
   if u.hp <= 0:
@@ -152,8 +257,14 @@ func tick(dt: float = STEP):
    advance_order(u)
    steer_attack(u)
   u.cooldown = maxf(0, u.cooldown-dt)
-  if u.team == 1:
+  if u.team == 1 and u.get("roster", false):
    u.order = {"pos":points[u.id%2].pos if u.type == "scout" else Vector2(15,24+(u.id%3)*8), "target_id":-1}
+  elif u.team == 1:
+   var threat=false
+   for friendly in units:
+    if friendly.team==0 and friendly.hp>0 and friendly.pos.distance_to(hq[1].pos)<22:threat=true;break
+   var rally=hq[1].pos+Vector2(-8,(u.id%5-2)*2.5) if threat else Vector2(30,32.5)
+   u.order={"pos":rally.clamp(Vector2(1.5,1.5),Vector2(98.5,63.5)),"target_id":-1}
   var target: Dictionary = {}
   var nearest = INF
   var explicit_focus=false
@@ -181,6 +292,10 @@ func tick(dt: float = STEP):
    target.hp -= u.damage*(0.6 if cover(target.pos) else 1.0)
    u.cooldown = u.reload
    shots.append({"from":u.pos,"to":target.pos,"team":u.team,"id":u.id,"target_id":target.get("id",ENEMY_HQ if u.team==0 else FRIENDLY_HQ)})
+   if target==hq[0]:warning="Command post under fire"
+   if target.get("kind","")=="factory" and target.hp<=0:
+    target.queue.clear()
+    if target.team==0:warning="Vehicle factory destroyed"
   var direction: Vector2 = u.direct
   if direction == Vector2.ZERO and not u.order.is_empty():
    var d: float = u.pos.distance_to(u.order.pos)
@@ -205,9 +320,10 @@ func tick(dt: float = STEP):
   if p.owner >= 0 and not near[1-p.owner]:
    score[p.owner] += dt
  for team in 2:
-  var living_enemy = units.any(func(u): return u.team != team and u.hp > 0)
-  if hq[1-team].hp <= 0 or not living_enemy or score[team] >= 120:
-   result = {"winner":team,"reason":"HQ destroyed" if hq[1-team].hp<=0 else "territory secured" if score[team]>=120 else "army eliminated", "seconds":roundi(time)}
+  var foe=1-team
+  var living_enemy = units.any(func(u): return u.team == foe and u.hp > 0)
+  if hq[foe].hp <= 0 or score[team] >= 120 or (not living_enemy and not reinforcing(foe)):
+   result = {"winner":team,"reason":"HQ destroyed" if hq[foe].hp<=0 else "territory secured" if score[team]>=120 else "army eliminated", "seconds":roundi(time)}
    return
- if time >= 360:
-  result = {"winner":-1 if score[0] == score[1] else 0 if score[0] > score[1] else 1,"reason":"time limit","seconds":360}
+ if time >= MATCH_SECONDS:
+  result = {"winner":-1 if score[0] == score[1] else 0 if score[0] > score[1] else 1,"reason":"time limit","seconds":int(MATCH_SECONDS)}

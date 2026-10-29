@@ -40,6 +40,7 @@ var weapon: OptionButton
 var armor: OptionButton
 var map_root: Node3D
 var relay_visuals: Array = []
+var building_visuals: Dictionary = {}
 var hq_visuals: Array = []
 var paused = true
 var accumulator = 0.0
@@ -173,6 +174,7 @@ func reset_battle(candidate = null):
  active_shots.clear()
  relay_visuals.clear()
  hq_visuals.clear()
+ building_visuals.clear()
  selected.clear()
  sim = candidate if candidate != null else Sim.new()
  battle_id = str(Time.get_unix_time_from_system())+"-"+str(Time.get_ticks_usec())
@@ -186,28 +188,60 @@ func reset_battle(candidate = null):
  for h in sim.hq:
   hq_visuals.append(Field.hq(map_root,h.pos,h.team))
  for u in sim.units:
-  var n = Node3D.new()
-  map_root.add_child(n)
-  var model=model_scenes[u.type].instantiate()
-  n.add_child(model)
-  var paint=armor_paint.duplicate()
-  paint.set_shader_parameter("team_color",Color("bacd8d") if u.team==0 else Color("ce8a62"))
-  for mesh in model.find_children("*","MeshInstance3D",true,false):mesh.material_override=paint
-  var ring = MeshInstance3D.new()
-  var torus = TorusMesh.new()
-  torus.inner_radius=1.9
-  torus.outer_radius=2.05
-  torus.rings=12
-  torus.ring_segments=12
-  ring.mesh=torus
-  ring.material_override=Field.mat("selection",Color("d5dba0"))
-  ring.material_override.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
-  n.add_child(ring)
-  ring.position.y=0.13
-  ring.visible=false
-  visuals[u.id]={"node":n,"ring":ring,"last":u.pos,"animation":n.find_child("AnimationPlayer",true,false),"turret":n.find_child("Turret",true,false),"paint":paint,"travel":0.,"meshes":n.find_children("*","MeshInstance3D",true,false),"hp":u.hp,"damage":0.,"dead":false,"aim":u.pos+Vector2(1 if u.team==0 else -1,0)}
+  add_unit_visual(u)
  update_visuals(0)
  refresh_campaign()
+
+func add_unit_visual(u: Dictionary):
+ if visuals.has(u.id):return
+ var n = Node3D.new()
+ map_root.add_child(n)
+ var model=model_scenes[u.type].instantiate()
+ n.add_child(model)
+ var paint=armor_paint.duplicate()
+ paint.set_shader_parameter("team_color",Color("bacd8d") if u.team==0 else Color("ce8a62"))
+ for mesh in model.find_children("*","MeshInstance3D",true,false):mesh.material_override=paint
+ var ring = MeshInstance3D.new()
+ var torus = TorusMesh.new()
+ torus.inner_radius=1.9
+ torus.outer_radius=2.05
+ torus.rings=12
+ torus.ring_segments=12
+ ring.mesh=torus
+ ring.material_override=Field.mat("selection",Color("d5dba0"))
+ ring.material_override.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
+ n.add_child(ring)
+ ring.position.y=0.13
+ ring.visible=false
+ visuals[u.id]={"node":n,"ring":ring,"last":u.pos,"animation":n.find_child("AnimationPlayer",true,false),"turret":n.find_child("Turret",true,false),"paint":paint,"travel":0.,"meshes":n.find_children("*","MeshInstance3D",true,false),"hp":u.hp,"damage":0.,"dead":false,"aim":u.pos+Vector2(1 if u.team==0 else -1,0)}
+
+func sync_factories():
+ var live: Array=[]
+ for b in sim.buildings:
+  live.append(b.id)
+  var node: Node3D=building_visuals.get(b.id)
+  if node==null:
+   node=Node3D.new()
+   map_root.add_child(node)
+   var bay=BoxMesh.new();bay.size=Vector3(7.2,2.4,4.6)
+   var shell=MeshInstance3D.new();shell.mesh=bay
+   shell.material_override=Field.mat("factory "+str(b.team),Color("8d9078") if b.team==0 else Color("8a6552"))
+   shell.position.y=1.2
+   node.add_child(shell)
+   var door=BoxMesh.new();door.size=Vector3(2.4,1.6,.2)
+   var mouth=MeshInstance3D.new();mouth.mesh=door
+   mouth.material_override=Field.mat("factory door",Color("2c312b"))
+   mouth.position=Vector3(0,.9,-2.3)
+   node.add_child(mouth)
+   building_visuals[b.id]=node
+  node.position=Field.ground(b.pos)
+  node.visible=b.hp>0
+  var raised=1.0 if b.complete else clampf(b.progress/Sim.FACTORY_SECONDS,.15,1.0)
+  node.scale=Vector3(1,raised,1)
+ for id in building_visuals.keys():
+  if not live.has(id):
+   building_visuals[id].queue_free()
+   building_visuals.erase(id)
 
 func refresh_campaign():
  var c = Campaign.load_record()
@@ -276,6 +310,9 @@ func pick_screen(pos: Vector2) -> Dictionary:
   if u.hp>0 and d<distance:
    distance=d;closest={"kind":"friendly_unit" if u.team==0 else "enemy_unit","id":u.id,"pos":u.pos}
  if not closest.is_empty():return closest
+ for b in sim.buildings:
+  if b.hp>0 and b.pos.distance_to(p)<3.8:
+   return {"kind":"friendly_building" if b.team==0 else "enemy_building","id":b.id,"pos":b.pos}
  for h in sim.hq:
   if h.hp>0 and h.pos.distance_to(p)<3.4:
    return {"kind":"friendly_building" if h.team==0 else "enemy_building","id":Sim.FRIENDLY_HQ if h.team==0 else Sim.ENEMY_HQ,"pos":h.pos}
@@ -367,7 +404,11 @@ func _physics_process(dt):
  while accumulator>=Sim.STEP and sim.result.is_empty():
   sim.tick()
   for shot in sim.shots:
-   effects.shot(shot,sim.units[shot.id-1].type)
+   var shooter: Dictionary={}
+   for unit in sim.units:
+    if unit.id==shot.id:shooter=unit
+   if shooter.is_empty() or not visuals.has(shot.id):continue
+   effects.shot(shot,shooter.type)
    visuals[shot.id].aim=shot.to
    var ap = visuals[shot.id].animation
    if ap is AnimationPlayer:
@@ -402,6 +443,9 @@ func _process(dt):
  hud.overlay.queue_redraw();hud.minimap.queue_redraw()
 
 func update_visuals(dt: float):
+ for u in sim.units:
+  add_unit_visual(u)
+ sync_factories()
  for u in sim.units:
   var v=visuals[u.id]
   var n: Node3D=v.node

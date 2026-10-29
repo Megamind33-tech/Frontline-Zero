@@ -1,0 +1,7 @@
+production_suite TOTAL: 18 production checks, 0 failed
+verify.sh exit 0
+Godot checks: 18 asset + 12 baseline + 22 formation + 22 queue + 31 battle + 38 direct-touch + 18 production
+JavaScript: 9 passed
+CAPTURE factory=true units=11 last=tank team=0
+Movie: dist/IRON_CROSSING-production.avi, 5.0 seconds, time-compressed 30 Hz ticks, 1280x720 llvmpipe
+ANDROID_HOME unset; no APK exported

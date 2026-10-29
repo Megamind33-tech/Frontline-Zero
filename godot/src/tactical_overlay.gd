@@ -26,6 +26,8 @@ func _draw():
   draw_line(point(Vector2(0,32.5)),point(Vector2(100,32.5)),Color("737262"),5)
   draw_rect(Rect2(point(Vector2(44,23.5)),point(Vector2(12,18))),Color("6b5a41"))
   for h in sim.hq:draw_rect(Rect2(point(h.pos)-Vector2(4,4),Vector2(8,8)),FRIEND if h.team==0 else ENEMY)
+  for b in sim.buildings:
+   if b.hp>0:draw_rect(Rect2(point(b.pos)-Vector2(3,2),Vector2(6,4)),FRIEND if b.team==0 else ENEMY)
   for p in sim.points:draw_circle(point(p.pos),4,FRIEND if p.owner==0 else ENEMY if p.owner==1 else Color("e2d5a7"))
   for u in sim.units:
    if u.hp>0:draw_circle(point(u.pos),3 if battle.selected.has(u.id) else 2,FRIEND if u.team==0 else ENEMY)
