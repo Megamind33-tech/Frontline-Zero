@@ -1,0 +1,16 @@
+{
+  "facility": "barracks",
+  "produces": "INF-001",
+  "seconds": 18,
+  "queue_cap": 4,
+  "cost": {"manpower": 1, "credits": 45, "infantry_equipment": 1, "supplies": 2},
+  "requires_infrastructure": ["uniform_factory", "equipment_workshop", "armoury", "supply_depot", "power"],
+  "infrastructure": {
+    "uniform_factory": {"output": "combat_uniform", "feeds": "barracks"},
+    "equipment_workshop": {"output": "infantry_equipment", "feeds": "barracks"},
+    "armoury": {"output": "rifle_magazine", "feeds": "barracks"},
+    "supply_depot": {"output": "supplies", "feeds": ["barracks", "armoury"]},
+    "power": {"output": "power", "feeds": ["uniform_factory", "equipment_workshop", "armoury", "barracks"]}
+  },
+  "notes": "Squad production spends these stocks once per rifleman. Individual magazines and stitches are not tracked."
+}

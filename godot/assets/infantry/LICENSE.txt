@@ -1,0 +1,12 @@
+FRONTLINE ZERO — INF-001 original procedural rifleman
+
+The geometry, textures and animation in this directory are original and dedicated
+under CC0 1.0 Universal:
+https://creativecommons.org/publicdomain/zero/1.0/
+
+Authoring source: scripts/build_infantry.py (Blender 5.2.3). No third-party body,
+clothing, weapon or motion-capture library is included. This dedication covers
+the generated artwork, not Blender, Godot or game code.
+
+The first generated mesh does not pass the INF-001 visual quality gates. It is a
+pipeline artifact for import and data tests, not an approved character.
