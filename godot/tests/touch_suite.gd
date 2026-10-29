@@ -77,6 +77,7 @@ func run():
  var old_order=scene.sim.units[0].order.duplicate(true)
  await tap(scene,scene.sim.hq[0].pos)
  check(scene.hud.building_panel.visible and scene.sim.units[0].order==old_order,"friendly building opens real management without an attack or move")
+ check(scene.hud.building_panel.get_global_rect().end.x<=scene.get_viewport().get_visible_rect().size.x,"management panel text stays inside the screen")
  scene.hud.building_panel.hide()
  scene.touch_input.last_unit=-1
  await tap(scene,scene.sim.units[0].pos);await tap(scene,scene.sim.units[0].pos)
@@ -106,6 +107,14 @@ func run():
  scene.touch_input.begin(0,Vector2(500,620),false,2700);scene.touch_input.end(0,Vector2(500,680),false,2750)
  scene.touch_input.begin(0,Vector2(500,680),false,2800);scene.touch_input.end(0,Vector2(500,620),false,2850)
  check(scene.sim.units[0].order==old_order,"crossing the HUD boundary in either direction cannot issue an order")
+ scene.hud.building_panel.show()
+ await process_frame
+ var edge=scene.hud.building_panel.get_global_rect().position.x
+ var border_y=scene.hud.building_panel.get_global_rect().position.y+100
+ scene.touch_input.begin(0,Vector2(edge-4,border_y),false,2900);scene.touch_input.end(0,Vector2(edge+4,border_y),false,2950)
+ scene.touch_input.begin(0,Vector2(edge+4,border_y),false,2960);scene.touch_input.end(0,Vector2(edge-4,border_y),false,2990)
+ check(scene.sim.units[0].order==old_order,"sub-threshold taps crossing a valid-terrain/HUD boundary are suppressed")
+ scene.hud.building_panel.hide()
  scene.camera_focus=Vector2(50,32.5);scene.camera_zoom=65;scene.camera_yaw=0;scene.update_camera();scene.touch_input.cancel()
  p=screen(scene,scene.sim.units[0].pos)
  scene.touch_input.begin(0,p,false,3000);scene.sim.units[0].pos+=Vector2(1,0);scene.touch_input.end(0,p,false,3100)

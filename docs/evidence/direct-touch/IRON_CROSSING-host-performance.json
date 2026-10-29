@@ -1,0 +1,31 @@
+{
+  "android_device": false,
+  "capture_mode": "real-time rendered host benchmark, no movie writer",
+  "cpu": "AMD EPYC 9V74 80-Core Processor",
+  "draw_calls_p50": 132.0,
+  "draw_calls_p95": 146.0,
+  "engine": "4.7.2-stable (official)",
+  "input_demo": "engine-dispatched touch taps/holds, HUD emulated mouse, queued attacks, pinch/rotate, saved group recall",
+  "logical_cpus": 3,
+  "process_rss_peak_mib": 422.05078125,
+  "renderer": "llvmpipe (LLVM 19.1.7, 256 bits)",
+  "resolution": "1280x720",
+  "result": {
+    "reason": "army eliminated",
+    "seconds": 30,
+    "winner": 1
+  },
+  "samples": 106,
+  "saved": true,
+  "shots_visualized": 50,
+  "simulation_hz": 30,
+  "static_memory_peak_mib": 42.9765863418579,
+  "thermal_measurement": "unavailable: no representative physical Android hardware attached",
+  "units": 9,
+  "video_memory_peak_mib": 26.6953926086426,
+  "wall_frame_ms_p50": 156.955,
+  "wall_frame_ms_p95": 182.693,
+  "wall_frame_ms_p99": 189.053,
+  "rss_sampling": "ps RSS samples every 0.5 s for the battle_capture.gd Godot process; maximum observed, not total system RAM",
+  "host_elapsed_seconds": 35.307
+}

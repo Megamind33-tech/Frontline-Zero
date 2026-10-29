@@ -20,6 +20,7 @@ PASS: optional additive taps preserve multi-unit selection
 PASS: engine-dispatched enemy tap dispatches multi-unit focus fire and visual confirmation
 PASS: engine-dispatched enemy-building tap attacks the structure
 PASS: friendly building opens real management without an attack or move
+PASS: management panel text stays inside the screen
 PASS: double-tap selects nearby living units of the same class
 PASS: long press on selected unit exposes advanced orders
 PASS: long press release cannot issue a movement command
@@ -28,6 +29,7 @@ PASS: single-finger camera pan never issues an order
 PASS: pinch and two-finger rotation preserve orders
 PASS: HUD-started drag cannot become a battlefield gesture
 PASS: crossing the HUD boundary in either direction cannot issue an order
+PASS: sub-threshold taps crossing a valid-terrain/HUD boundary are suppressed
 PASS: a moving friendly remains selectable from the pressed target
 PASS: target destroyed during a tap rejects gracefully without a ground order
 PASS: emulated mouse activates HUD buttons without battlefield orders
@@ -36,4 +38,4 @@ PASS: saved control group recalls selection
 PASS: control group assignments survive reload
 PASS: group recall filters destroyed units
 PASS: group identities cannot select a different blueprint after redeployment
-TOTAL: 36 direct-touch checks, 0 failed
+TOTAL: 38 direct-touch checks, 0 failed

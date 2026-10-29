@@ -109,6 +109,8 @@ func setup(controller):
  var building_box=VBoxContainer.new();building_panel.add_child(building_box)
  label(building_box,"ASTER COMMAND POST",20)
  building_label=label(building_box,"",15)
+ building_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+ building_label.custom_minimum_size.x=270
  button(building_box,"Vehicle workshop",func():building_panel.hide();briefing.show();workshop.show();battle.paused=true;battle.clear_direct();battle.pause_button.text="Resume")
  button(building_box,"Mission briefing",func():building_panel.hide();briefing.show();battle.paused=true;battle.clear_direct();battle.pause_button.text="Resume")
  button(building_box,"Close",func():building_panel.hide())
