@@ -28,3 +28,8 @@ Run `GODOT_BIN=/path/to/godot bash scripts/verify.sh`.
 
 ## Next task / handoff
 Run the committed CI, inspect its logs, and fix only reproducible export errors. Preserve this baseline. Download APK if CI succeeds. On real low-end Android: cold start, 15-minute battle, selection/direct-control inputs, save/relaunch, memory/thermal and frame-time capture. Territory balance is a separate feature task after the two-attempt stop.
+
+## First GitHub CI result
+Committed baseline: `be0aba00c5d283e10442a32c7ebcf264d00f6703`.
+Run: https://github.com/Megamind33-tech/Frontline-Zero/actions/runs/40870357023
+The verify job did **not start**. Its check annotation states: "The job was not started because your account is locked due to a billing issue." Android job was skipped. No CI code/build result and no APK exists. No reruns attempted. Next action: account owner resolves the GitHub billing lock, then runs the existing workflow; alternatively use a provisioned local Android build host. Do not treat this as a game-code failure or chargeable authorization to change billing.
