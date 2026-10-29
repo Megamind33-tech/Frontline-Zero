@@ -1,0 +1,35 @@
+VERIFIED TOOLCHAIN / 2026-10-29
+Godot 4.7.2.stable.official.ed1daf0bf
+Temurin JDK 17.0.21+9
+Android command-line tools 19.0; platform 35 r2; build-tools 35.0.1; platform-tools 37.0.1
+Blender 4.3.2; Inkscape 1.4; GIMP 3.0.4
+REGRESSION SUMMARY
+BENCHMARK: median=0.0287 ms/step; max=0.0291 ms/step; 10 units; headless host only
+TOTAL: 12 checks passed; 0 failed
+BENCHMARK: 0.0274 ms/group command, 1000 commands of 12 units, headless host only
+TOTAL: 22 formation checks, 0 failed
+TOTAL: 22 queue checks, 0 failed
+ℹ tests 9
+ℹ fail 0
+Built standalone offline dist/FRONTLINE_ZERO.html
+18 Blender-to-Godot art checks passed; original command sheet PNG visually inspected.
+APK signature:
+Verifies
+Verified using v1 scheme (JAR signing): false
+Verified using v2 scheme (APK Signature Scheme v2): true
+Verified using v3 scheme (APK Signature Scheme v3): true
+Verified using v3.1 scheme (APK Signature Scheme v3.1): false
+Verified using v4 scheme (APK Signature Scheme v4): false
+Verified for SourceStamp: false
+Number of signers: 1
+PASS: APK integrity, Android manifest, Godot data, ARM64/ARMv7 runtimes and MIT notice
+aapt package/SDK/architecture summary:
+package: name='com.frontlinezero.game' versionCode='1' versionName='0.1.0' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'
+sdkVersion:'24'
+targetSdkVersion:'36'
+application-label:'FRONTLINE ZERO'
+native-code: 'arm64-v8a' 'armeabi-v7a'
+No errors detected in compressed data of dist/FRONTLINE_ZERO-debug.apk.
+ADB: no devices attached; no phone boot, visual battle QA or device performance result.
+FRONTLINE_ZERO-debug.apk: 57669945 bytes; SHA256 6c629fc2ec629a88cfbfa542f27baf9dd31cc6a9b33936fd423464c953a7d736
+FRONTLINE_ZERO-art-kit.zip: 303786 bytes; SHA256 41ab1bc86254233421277e3a6c11deb0c376c21fbf3aef2edc4094bf0e74ad46

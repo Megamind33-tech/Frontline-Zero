@@ -1,0 +1,7 @@
+FRONTLINE ZERO original procedural prototype vehicle geometry, recoil animation,
+command-icons.svg and godot/icon.svg are dedicated to the public domain under
+CC0 1.0 Universal: https://creativecommons.org/publicdomain/zero/1.0/
+
+This dedication covers original artwork only. It does not relicense authoring
+applications, Android/Godot/JDK binaries or third-party components. Retain their
+own licenses and notices when redistributing them.

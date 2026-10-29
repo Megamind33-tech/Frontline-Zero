@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+<title>FRONTLINE ZERO</title>
+<desc>Original geometric command emblem. CC0-1.0.</desc>
+<rect width="256" height="256" rx="48" fill="#17241f"/>
+<path d="M128 24 L220 64 V140 L128 232 L36 140 V64 Z" fill="#354d32" stroke="#b8cfad" stroke-width="8"/>
+<path d="M76 80 H144 V100 H98 V118 H134 V138 H98 V176 H76 Z" fill="#fff6ad"/>
+<path d="M153 80 H189 V176 H153 Z M166 100 V156 H176 V100 Z" fill="#b8cfad" fill-rule="evenodd"/>
+</svg>
